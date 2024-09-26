@@ -2,3 +2,5 @@
 
 export(shape_plot)
 export(shape_plot_momocs)
+export(Haug_panel)
+export(Haug_overview)
