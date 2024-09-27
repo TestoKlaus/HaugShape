@@ -1,14 +1,28 @@
 Package: HaugShape
 Type: Package
-Title: Create Nice Scatterplots For Shape Analyses
-Version: 0.1.0
-Author: Who wrote it
+Title: Tools for Shape Plotting
+Version: 0.1.1
+Author: Colin Hassenbach
 Maintainer: Colin Hassenbach <colin.hassenbach@gmail.com>
-Description: 
-License: Private
+Description: This package provides tools for plotting shape data using
+    ggplot2, including options for adding convex hulls, heatmaps, and
+    customizable axis labels.
+License: MIT
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2
 Roxygen: list(markdown = TRUE)
 Imports:
-  ggplot2
+    ggplot2,
+    dplyr,
+    rlang,
+    MASS,
+    grDevices,
+    grid,
+    scales,
+    patchwork,
+    RColorBrewer,
+    Momocs
+
+
+
