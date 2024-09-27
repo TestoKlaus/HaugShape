@@ -1,68 +1,65 @@
-#' Create a customizable scatterplot with convex hulls, heatmaps, and contours.
+#' shape_plot
 #'
-#' This function generates a scatterplot for two specified columns from a dataset. It allows for the addition
-#' of convex hulls around groups, heatmaps, and contours. The plot is fully customizable, including options for
-#' adjusting axis labels, tick marks, hulls, heatmaps, and contour properties. It also supports two visual styles,
-#' "Haug" and "inverted_Haug".
+#' Generates a scatter plot of specified columns with optional grouping, hulls, heatmaps, contours, and customizable axis labels.
 #'
-#' @param data A data frame containing the variables to plot.
-#' @param x_col The column name (string) for the x-axis variable.
-#' @param y_col The column name (string) for the y-axis variable.
-#' @param group_col (Optional) The column name (string) for grouping data into categories.
-#' @param group_vals (Optional) A vector specifying the group values to be plotted. Must correspond to values in `group_col`.
-#' @param hull_fill A color (or vector of colors) for filling the convex hulls. Default is "black".
-#' @param hull_color A color for the borders of the convex hulls. Default is "black".
-#' @param hull_linetype The line type for the hull borders (e.g., "solid", "dashed"). Default is "solid".
-#' @param hull_alpha Opacity levels for the convex hulls. Can be a vector. Default is 0.1.
-#' @param title The title of the plot. Default is "Shape Plot".
-#' @param x_label Custom label for the x-axis. If NULL, the column name is used. Default is NULL.
-#' @param y_label Custom label for the y-axis. If NULL, the column name is used. Default is NULL.
-#' @param point_color A color (or vector of colors) for the scatter points. Default is "black".
-#' @param point_fill A color for filling the scatter points. Default is "white".
-#' @param point_shape The shape of the scatter points. Can be a vector. Default is 21 (circle).
-#' @param point_size The size of the scatter points. Can be a vector. Default is 2.
-#' @param title_size Font size for the plot title. Default is 24.
-#' @param label_size Font size for the axis labels. Default is 20.
-#' @param tick_size Font size for the tick marks. Default is 15.
-#' @param tick_length The proportional length of tick marks relative to plot size. Default is 0.005.
-#' @param tick_margin The margin around the ticks. Default is 0.05.
-#' @param x_label_adjust Horizontal adjustment for the x-axis label. Default is 0.
-#' @param y_label_adjust Vertical adjustment for the y-axis label. Default is 0.
-#' @param x_label_size Font size for the x-axis label. Default is 5.
-#' @param y_label_size Font size for the y-axis label. Default is 5.
-#' @param show_hulls Logical. Should convex hulls be drawn around the groups? Default is FALSE.
-#' @param show_hull_for_groups (Optional) A vector specifying the groups for which hulls should be shown. Default is NULL (shows hulls for all groups if `show_hulls` is TRUE).
-#' @param show_heatmaps Logical. Should heatmaps be shown for the groups? Default is FALSE.
-#' @param heatmap_colors A list of color gradients for the heatmaps. Default is list(c("white", "red"), c("white", "blue")).
-#' @param heatmap_alpha The opacity level for the heatmaps. Default is 1.
-#' @param heatmap_bins The number of bins for the heatmap's density estimation. Default is 30.
-#' @param show_heatmap_for_groups (Optional) A vector specifying the groups for which heatmaps should be shown. Default is NULL (shows heatmaps for all groups if `show_heatmaps` is TRUE).
-#' @param show_contours Logical. Should contour lines be drawn around the groups? Default is FALSE.
-#' @param contour_colors A color (or vector of colors) for the contour lines. Default is "black".
-#' @param show_contours_for_groups (Optional) A vector specifying the groups for which contours should be shown. Default is NULL (shows contours for all groups if `show_contours` is TRUE).
-#' @param contour_linewidth The width of the contour lines. Default is 0.5.
-#' @param axis_linewidth The width of the axes and tick marks. Default is 1.
-#' @param plot_style A string specifying the plot style. "Haug" uses a white background with black text, while "inverted_Haug" uses a black background with white text. Default is "Haug".
+#' @param data A data frame containing the data to be plotted.
+#' @param x_col A character string representing the name of the column to be plotted on the x-axis.
+#' @param y_col A character string representing the name of the column to be plotted on the y-axis.
+#' @param group_col (Optional) A character string representing the name of the grouping column, if group-specific aesthetics or hulls are required.
+#' @param group_vals (Optional) A vector of specific group values to be displayed. Only these groups will appear in the plot.
+#' @param hull_fill A vector specifying the fill color(s) for the convex hull(s). Defaults to "black". Can be a vector if multiple groups are shown.
+#' @param hull_color A vector specifying the border color(s) for the convex hull(s). Defaults to "black". Can be a vector if multiple groups are shown.
+#' @param hull_linetype A character string representing the linetype for the convex hull(s). Defaults to "solid".
+#' @param hull_alpha A numeric value between 0 and 1 specifying the transparency for the convex hull(s). Defaults to 0.1.
+#' @param title A character string specifying the title of the plot. Defaults to "Shape Plot".
+#' @param x_label A character string specifying the label for the x-axis. Defaults to the column name of x_col.
+#' @param y_label A character string specifying the label for the y-axis. Defaults to the column name of y_col.
+#' @param point_color A character string or vector specifying the color(s) of the points. Defaults to "black".
+#' @param point_fill A character string or vector specifying the fill color(s) of the points. Defaults to "white".
+#' @param point_shape An integer or vector specifying the shape(s) of the points. Defaults to 21 (circle).
+#' @param point_size A numeric value or vector specifying the size(s) of the points. Defaults to 2.
+#' @param title_size A numeric value specifying the font size for the plot title. Defaults to 24.
+#' @param label_size A numeric value specifying the font size for axis labels. Defaults to 20.
+#' @param tick_size A numeric value specifying the font size for axis tick labels. Defaults to 15.
+#' @param tick_length A numeric value specifying the proportional length of axis ticks relative to the plot size. Defaults to 0.005.
+#' @param tick_margin A numeric value specifying the margin around the plot. Defaults to 0.05.
+#' @param x_label_adjust_x A numeric value for horizontal adjustment of the x-axis label. Defaults to 0.
+#' @param x_label_adjust_y A numeric value for vertical adjustment of the x-axis label. Defaults to 0.
+#' @param y_label_adjust_x A numeric value for horizontal adjustment of the y-axis label. Defaults to 0.
+#' @param y_label_adjust_y A numeric value for vertical adjustment of the y-axis label. Defaults to 0.
+#' @param x_label_size A numeric value specifying the font size of the x-axis label. Defaults to 5.
+#' @param y_label_size A numeric value specifying the font size of the y-axis label. Defaults to 5.
+#' @param show_hulls A logical value indicating whether to display convex hulls. Defaults to FALSE.
+#' @param show_hull_for_groups (Optional) A character vector specifying which groups to display convex hulls for.
+#' @param show_heatmaps A logical value indicating whether to display heatmaps. Defaults to FALSE.
+#' @param heatmap_colors A list of vectors specifying the color gradient(s) for the heatmaps. Defaults to red and blue for two groups.
+#' @param heatmap_alpha A numeric value between 0 and 1 specifying the transparency of heatmaps. Defaults to 1.
+#' @param heatmap_bins A numeric value specifying the number of bins for the heatmap. Defaults to 30.
+#' @param show_heatmap_for_groups (Optional) A character vector specifying which groups to display heatmaps for.
+#' @param show_contours A logical value indicating whether to display contour lines over heatmaps. Defaults to FALSE.
+#' @param contour_colors A character string or vector specifying the color(s) of the contour lines. Defaults to "black".
+#' @param show_contours_for_groups (Optional) A character vector specifying which groups to display contour lines for.
+#' @param contour_linewidth A numeric value specifying the thickness of the contour lines. Defaults to 0.5.
+#' @param axis_linewidth A numeric value specifying the width of the axis lines and ticks. Defaults to 1.
+#' @param plot_style A character string specifying the style of the plot. Options are "Haug", "inverted_Haug", and "publication". Defaults to "Haug".
+#' @param rotate_y_label A logical value indicating whether the y-axis label should be rotated. Defaults to TRUE.
+#' @param show_label_text_fields A logical value indicating whether the axis labels should have text fields (black borders). Defaults to TRUE.
 #'
-#' @return A `ggplot` object with the customized scatter plot.
+#' @return A ggplot object representing the generated scatter plot.
+#'
+#' @details
+#' The `shape_plot` function generates a customizable scatter plot that allows for grouped data visualization with optional features like hulls, heatmaps, and contours.
+#' It also offers extensive control over axis label positions and styles, making it suitable for publications and visual data analysis.
 #'
 #' @examples
-#' # Example data
-#' df <- data.frame(
-#'   x = rnorm(100),
-#'   y = rnorm(100),
-#'   group = sample(c("A", "B", "C"), 100, replace = TRUE)
-#' )
+#' # Example usage with hulls and heatmaps
+#' shape_plot(my_data, "PC1", "PC2", "Group", group_vals = c("A", "B"),
+#'            point_color = c("red", "blue"), show_hulls = TRUE, show_heatmaps = TRUE)
 #'
-#' # Create a scatterplot with convex hulls for all groups
-#' shape_plot(df, "x", "y", group_col = "group", group_vals = c("A", "B", "C"),
-#'            show_hulls = TRUE, hull_fill = c("red", "green", "blue"), hull_alpha = 0.3)
-#'
-#' # Create a scatterplot with heatmaps for specific groups
-#' shape_plot(df, "x", "y", group_col = "group", group_vals = c("A", "B"),
-#'            show_heatmaps = TRUE, heatmap_colors = list(c("white", "red"), c("white", "green")))
-#'
-#' @export
+#' # Example with contours and custom axis labels
+#' shape_plot(my_data, "Dim1", "Dim2", group_col = "Type",
+#'            show_contours = TRUE, contour_colors = c("black", "grey"),
+#'            x_label = "Dimension 1", y_label = "Dimension 2")
 
 shape_plot <- function(data, x_col, y_col, group_col = NULL,
                        group_vals = NULL,  # Optional
@@ -72,8 +69,10 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
                        title_size = 24, label_size = 20, tick_size = 15,
                        tick_length = 0.005,  # Proportional custom tick length (relative to plot size)
                        tick_margin = 0.05,
-                       x_label_adjust = 0,  # New parameter for x-axis label adjustment
-                       y_label_adjust = 0,  # New parameter for y-axis label adjustment
+                       x_label_adjust_x = 0,  # New horizontal adjustment for x-axis label
+                       x_label_adjust_y = 0,  # New vertical adjustment for x-axis label
+                       y_label_adjust_x = 0,  # New parameter for horizontal adjustment of y-axis label
+                       y_label_adjust_y = 0,  # New parameter for vertical adjustment of y-axis label
                        x_label_size = 5,  # New parameter for x-axis label size
                        y_label_size = 5,  # New parameter for y-axis label size
                        show_hulls = FALSE,  # Default is now FALSE
@@ -87,7 +86,10 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
                        show_contours_for_groups = NULL,  # New param to selectively show contours
                        contour_linewidth = 0.5,  # New param to adjust contour linewidth
                        axis_linewidth = 1,  # New param to adjust axis and tick linewidth together
-                       plot_style = "Haug") {
+                       plot_style = "Haug",
+                       rotate_y_label = TRUE,  # New param to rotate the y-axis label and rectangle
+                       show_label_text_fields = TRUE  # New param to toggle label text fields
+) {
   if (missing(data) || missing(x_col) || missing(y_col)) {
     stop("Missing required arguments: 'data', 'x_col', or 'y_col'. Please provide these parameters.")
   }
@@ -102,7 +104,7 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
     stop(paste("The column", x_col, "does not exist in the data. Please provide a valid x-axis column."))
   }
   if (!y_col %in% colnames(data)) {
-    stop(paste("The column", y_col, "does not exist in the data. Please provide a valid y-axis column."))
+    stop("The column", y_col, "does not exist in the data. Please provide a valid y-axis column.")
   }
 
   # Validate that group_vals corresponds to the values in group_col (if provided)
@@ -110,39 +112,46 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
     stop("Some values in 'group_vals' do not exist in the specified 'group_col'. Please check the group values.")
   }
 
-  # Check if the provided heatmap and contour settings are valid
-  if (show_heatmaps && length(heatmap_colors) < length(group_vals)) {
-    stop("The number of heatmap colors provided is less than the number of groups. Please provide enough colors for each group.")
-  }
-
-  if (show_contours && length(contour_colors) < length(group_vals)) {
-    stop("The number of contour colors provided is less than the number of groups. Please provide enough colors for each group.")
-  }
-  # New param to toggle between different styles
-
   # Define style-specific parameters
   if (plot_style == "inverted_Haug") {
-    # Inverted Haug: Black background, white text
     background_color <- "black"
+    plot_background_color <- "black"
     text_color <- "white"
     axis_color <- "white"
-  } else {
-    # Haug: Default style
+    text_field_fill <- "black"  # Inverted text field color
+    text_field_color <- "white"  # Inverted text field text color
+  } else if (plot_style == "publication") {
     background_color <- "white"
+    plot_background_color <- "lightgrey"
     text_color <- "black"
     axis_color <- "black"
+    text_field_fill <- "white"
+    text_field_color <- "black"
+  } else {
+    background_color <- "white"
+    plot_background_color <- "white"
+    text_color <- "black"
+    axis_color <- "black"
+    text_field_fill <- "white"
+    text_field_color <- "black"
   }
 
   # Convert column names to symbols for ggplot
   x <- rlang::sym(x_col)
   y <- rlang::sym(y_col)
 
-  # If labels are not provided, use the column names as labels
-  if (is.null(x_label)) x_label <- x_col
-  if (is.null(y_label)) y_label <- y_col
-
   # Create the base plot without points first
   plot <- ggplot2::ggplot(data, ggplot2::aes(x = !!x, y = !!y))
+
+  # Add the light grey rectangle for the "publication" style
+  if (plot_style == "publication") {
+    plot <- plot +
+      ggplot2::geom_rect(aes(xmin = min(data[[x_col]]) + 0.02 * diff(range(data[[x_col]])),
+                             xmax = max(data[[x_col]]) - 0.02 * diff(range(data[[x_col]])),
+                             ymin = min(data[[y_col]]) + 0.02 * diff(range(data[[y_col]])),
+                             ymax = max(data[[y_col]]) - 0.02 * diff(range(data[[y_col]]))),
+                         fill = plot_background_color, color = NA)
+  }
 
   # Customize the theme
   plot <- plot +
@@ -324,19 +333,23 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
   # Add titles and axis labels using labs (after all other layers)
   plot <- plot + ggplot2::labs(title = title)
 
-  # Adjust x-axis label position (far right under the arrow) with custom adjustment and size
-  plot <- plot +
-    ggplot2::annotate("text",
-                      x = max(x_range) - (0.05 * max(x_range)) + x_expand * 0.8 + x_label_adjust,  # Add custom adjustment
-                      y = -0.05 * diff(y_range),
-                      label = x_label, size = x_label_size, hjust = 0, color = text_color)  # Use custom size
-
-  # Adjust y-axis label position (top, rotated, closer to axis) with custom adjustment and size
-  plot <- plot +
-    ggplot2::annotate("text",
-                      x = -0.02 * diff(x_range),
-                      y = max(y_range) + y_label_adjust,  # Add custom adjustment
-                      label = y_label, size = y_label_size, vjust = 0, angle = 90, color = text_color)  # Use custom size
+  # Add custom axis labels with optional black borders (like text fields)
+  if (show_label_text_fields) {
+    plot <- plot +
+      ggplot2::geom_label(aes(x = max(x_range) + x_expand + x_label_adjust_x, y = -0.05 * diff(y_range) + x_label_adjust_y),
+                          label = x_label, size = x_label_size, label.padding = unit(0.3, "lines"),
+                          color = text_field_color, fill = text_field_fill) +
+      ggplot2::geom_label(aes(x = -0.02 * diff(x_range) - y_label_adjust_x, y = max(y_range) + y_expand + y_label_adjust_y),
+                          label = y_label, size = y_label_size, label.padding = unit(0.3, "lines"),
+                          color = text_field_color, fill = text_field_fill, angle = ifelse(rotate_y_label, 90, 0))
+  } else {
+    plot <- plot +
+      ggplot2::annotate("text", x = max(x_range) + x_expand + x_label_adjust_x,
+                        y = -0.05 * diff(y_range) + x_label_adjust_y,
+                        label = x_label, size = x_label_size, color = text_color) +
+      ggplot2::annotate("text", x = -0.02 * diff(x_range) - y_label_adjust_x, y = max(y_range) + y_expand + y_label_adjust_y,
+                        label = y_label, size = y_label_size, color = text_color, angle = ifelse(rotate_y_label, 90, 0))
+  }
 
   return(plot)
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/shape_plot.R
 \name{shape_plot}
 \alias{shape_plot}
-\title{Create a customizable scatterplot with convex hulls, heatmaps, and contours.}
+\title{shape_plot}
 \usage{
 shape_plot(
   data,
@@ -26,8 +26,10 @@ shape_plot(
   tick_size = 15,
   tick_length = 0.005,
   tick_margin = 0.05,
-  x_label_adjust = 0,
-  y_label_adjust = 0,
+  x_label_adjust_x = 0,
+  x_label_adjust_y = 0,
+  y_label_adjust_x = 0,
+  y_label_adjust_y = 0,
   x_label_size = 5,
   y_label_size = 5,
   show_hulls = FALSE,
@@ -42,109 +44,113 @@ shape_plot(
   show_contours_for_groups = NULL,
   contour_linewidth = 0.5,
   axis_linewidth = 1,
-  plot_style = "Haug"
+  plot_style = "Haug",
+  rotate_y_label = TRUE,
+  show_label_text_fields = TRUE
 )
 }
 \arguments{
-\item{data}{A data frame containing the variables to plot.}
+\item{data}{A data frame containing the data to be plotted.}
 
-\item{x_col}{The column name (string) for the x-axis variable.}
+\item{x_col}{A character string representing the name of the column to be plotted on the x-axis.}
 
-\item{y_col}{The column name (string) for the y-axis variable.}
+\item{y_col}{A character string representing the name of the column to be plotted on the y-axis.}
 
-\item{group_col}{(Optional) The column name (string) for grouping data into categories.}
+\item{group_col}{(Optional) A character string representing the name of the grouping column, if group-specific aesthetics or hulls are required.}
 
-\item{group_vals}{(Optional) A vector specifying the group values to be plotted. Must correspond to values in \code{group_col}.}
+\item{group_vals}{(Optional) A vector of specific group values to be displayed. Only these groups will appear in the plot.}
 
-\item{hull_fill}{A color (or vector of colors) for filling the convex hulls. Default is "black".}
+\item{hull_fill}{A vector specifying the fill color(s) for the convex hull(s). Defaults to "black". Can be a vector if multiple groups are shown.}
 
-\item{hull_color}{A color for the borders of the convex hulls. Default is "black".}
+\item{hull_color}{A vector specifying the border color(s) for the convex hull(s). Defaults to "black". Can be a vector if multiple groups are shown.}
 
-\item{hull_linetype}{The line type for the hull borders (e.g., "solid", "dashed"). Default is "solid".}
+\item{hull_linetype}{A character string representing the linetype for the convex hull(s). Defaults to "solid".}
 
-\item{hull_alpha}{Opacity levels for the convex hulls. Can be a vector. Default is 0.1.}
+\item{hull_alpha}{A numeric value between 0 and 1 specifying the transparency for the convex hull(s). Defaults to 0.1.}
 
-\item{title}{The title of the plot. Default is "Shape Plot".}
+\item{title}{A character string specifying the title of the plot. Defaults to "Shape Plot".}
 
-\item{x_label}{Custom label for the x-axis. If NULL, the column name is used. Default is NULL.}
+\item{x_label}{A character string specifying the label for the x-axis. Defaults to the column name of x_col.}
 
-\item{y_label}{Custom label for the y-axis. If NULL, the column name is used. Default is NULL.}
+\item{y_label}{A character string specifying the label for the y-axis. Defaults to the column name of y_col.}
 
-\item{point_color}{A color (or vector of colors) for the scatter points. Default is "black".}
+\item{point_color}{A character string or vector specifying the color(s) of the points. Defaults to "black".}
 
-\item{point_fill}{A color for filling the scatter points. Default is "white".}
+\item{point_fill}{A character string or vector specifying the fill color(s) of the points. Defaults to "white".}
 
-\item{point_shape}{The shape of the scatter points. Can be a vector. Default is 21 (circle).}
+\item{point_shape}{An integer or vector specifying the shape(s) of the points. Defaults to 21 (circle).}
 
-\item{point_size}{The size of the scatter points. Can be a vector. Default is 2.}
+\item{point_size}{A numeric value or vector specifying the size(s) of the points. Defaults to 2.}
 
-\item{title_size}{Font size for the plot title. Default is 24.}
+\item{title_size}{A numeric value specifying the font size for the plot title. Defaults to 24.}
 
-\item{label_size}{Font size for the axis labels. Default is 20.}
+\item{label_size}{A numeric value specifying the font size for axis labels. Defaults to 20.}
 
-\item{tick_size}{Font size for the tick marks. Default is 15.}
+\item{tick_size}{A numeric value specifying the font size for axis tick labels. Defaults to 15.}
 
-\item{tick_length}{The proportional length of tick marks relative to plot size. Default is 0.005.}
+\item{tick_length}{A numeric value specifying the proportional length of axis ticks relative to the plot size. Defaults to 0.005.}
 
-\item{tick_margin}{The margin around the ticks. Default is 0.05.}
+\item{tick_margin}{A numeric value specifying the margin around the plot. Defaults to 0.05.}
 
-\item{x_label_adjust}{Horizontal adjustment for the x-axis label. Default is 0.}
+\item{x_label_adjust_x}{A numeric value for horizontal adjustment of the x-axis label. Defaults to 0.}
 
-\item{y_label_adjust}{Vertical adjustment for the y-axis label. Default is 0.}
+\item{x_label_adjust_y}{A numeric value for vertical adjustment of the x-axis label. Defaults to 0.}
 
-\item{x_label_size}{Font size for the x-axis label. Default is 5.}
+\item{y_label_adjust_x}{A numeric value for horizontal adjustment of the y-axis label. Defaults to 0.}
 
-\item{y_label_size}{Font size for the y-axis label. Default is 5.}
+\item{y_label_adjust_y}{A numeric value for vertical adjustment of the y-axis label. Defaults to 0.}
 
-\item{show_hulls}{Logical. Should convex hulls be drawn around the groups? Default is FALSE.}
+\item{x_label_size}{A numeric value specifying the font size of the x-axis label. Defaults to 5.}
 
-\item{show_hull_for_groups}{(Optional) A vector specifying the groups for which hulls should be shown. Default is NULL (shows hulls for all groups if \code{show_hulls} is TRUE).}
+\item{y_label_size}{A numeric value specifying the font size of the y-axis label. Defaults to 5.}
 
-\item{show_heatmaps}{Logical. Should heatmaps be shown for the groups? Default is FALSE.}
+\item{show_hulls}{A logical value indicating whether to display convex hulls. Defaults to FALSE.}
 
-\item{heatmap_colors}{A list of color gradients for the heatmaps. Default is list(c("white", "red"), c("white", "blue")).}
+\item{show_hull_for_groups}{(Optional) A character vector specifying which groups to display convex hulls for.}
 
-\item{heatmap_alpha}{The opacity level for the heatmaps. Default is 1.}
+\item{show_heatmaps}{A logical value indicating whether to display heatmaps. Defaults to FALSE.}
 
-\item{heatmap_bins}{The number of bins for the heatmap's density estimation. Default is 30.}
+\item{heatmap_colors}{A list of vectors specifying the color gradient(s) for the heatmaps. Defaults to red and blue for two groups.}
 
-\item{show_heatmap_for_groups}{(Optional) A vector specifying the groups for which heatmaps should be shown. Default is NULL (shows heatmaps for all groups if \code{show_heatmaps} is TRUE).}
+\item{heatmap_alpha}{A numeric value between 0 and 1 specifying the transparency of heatmaps. Defaults to 1.}
 
-\item{show_contours}{Logical. Should contour lines be drawn around the groups? Default is FALSE.}
+\item{heatmap_bins}{A numeric value specifying the number of bins for the heatmap. Defaults to 30.}
 
-\item{contour_colors}{A color (or vector of colors) for the contour lines. Default is "black".}
+\item{show_heatmap_for_groups}{(Optional) A character vector specifying which groups to display heatmaps for.}
 
-\item{show_contours_for_groups}{(Optional) A vector specifying the groups for which contours should be shown. Default is NULL (shows contours for all groups if \code{show_contours} is TRUE).}
+\item{show_contours}{A logical value indicating whether to display contour lines over heatmaps. Defaults to FALSE.}
 
-\item{contour_linewidth}{The width of the contour lines. Default is 0.5.}
+\item{contour_colors}{A character string or vector specifying the color(s) of the contour lines. Defaults to "black".}
 
-\item{axis_linewidth}{The width of the axes and tick marks. Default is 1.}
+\item{show_contours_for_groups}{(Optional) A character vector specifying which groups to display contour lines for.}
 
-\item{plot_style}{A string specifying the plot style. "Haug" uses a white background with black text, while "inverted_Haug" uses a black background with white text. Default is "Haug".}
+\item{contour_linewidth}{A numeric value specifying the thickness of the contour lines. Defaults to 0.5.}
+
+\item{axis_linewidth}{A numeric value specifying the width of the axis lines and ticks. Defaults to 1.}
+
+\item{plot_style}{A character string specifying the style of the plot. Options are "Haug", "inverted_Haug", and "publication". Defaults to "Haug".}
+
+\item{rotate_y_label}{A logical value indicating whether the y-axis label should be rotated. Defaults to TRUE.}
+
+\item{show_label_text_fields}{A logical value indicating whether the axis labels should have text fields (black borders). Defaults to TRUE.}
 }
 \value{
-A \code{ggplot} object with the customized scatter plot.
+A ggplot object representing the generated scatter plot.
 }
 \description{
-This function generates a scatterplot for two specified columns from a dataset. It allows for the addition
-of convex hulls around groups, heatmaps, and contours. The plot is fully customizable, including options for
-adjusting axis labels, tick marks, hulls, heatmaps, and contour properties. It also supports two visual styles,
-"Haug" and "inverted_Haug".
+Generates a scatter plot of specified columns with optional grouping, hulls, heatmaps, contours, and customizable axis labels.
+}
+\details{
+The \code{shape_plot} function generates a customizable scatter plot that allows for grouped data visualization with optional features like hulls, heatmaps, and contours.
+It also offers extensive control over axis label positions and styles, making it suitable for publications and visual data analysis.
 }
 \examples{
-# Example data
-df <- data.frame(
-  x = rnorm(100),
-  y = rnorm(100),
-  group = sample(c("A", "B", "C"), 100, replace = TRUE)
-)
+# Example usage with hulls and heatmaps
+shape_plot(my_data, "PC1", "PC2", "Group", group_vals = c("A", "B"),
+           point_color = c("red", "blue"), show_hulls = TRUE, show_heatmaps = TRUE)
 
-# Create a scatterplot with convex hulls for all groups
-shape_plot(df, "x", "y", group_col = "group", group_vals = c("A", "B", "C"),
-           show_hulls = TRUE, hull_fill = c("red", "green", "blue"), hull_alpha = 0.3)
-
-# Create a scatterplot with heatmaps for specific groups
-shape_plot(df, "x", "y", group_col = "group", group_vals = c("A", "B"),
-           show_heatmaps = TRUE, heatmap_colors = list(c("white", "red"), c("white", "green")))
-
+# Example with contours and custom axis labels
+shape_plot(my_data, "Dim1", "Dim2", group_col = "Type",
+           show_contours = TRUE, contour_colors = c("black", "grey"),
+           x_label = "Dimension 1", y_label = "Dimension 2")
 }
