@@ -78,7 +78,7 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
                        show_hulls = FALSE,  # Default is now FALSE
                        show_hull_for_groups = NULL,  # Show hulls only for specified groups
                        show_heatmaps = FALSE,  # New parameter to control heatmap display
-                       heatmap_colors = list(c("white", "red"), c("white", "blue")),  # Custom colors for heatmaps
+                       heatmap_colors = list(c("white", "red"), c("white", "blue"),c("white","green")),  # Custom colors for heatmaps
                        heatmap_alpha = 1, heatmap_bins = 30,
                        show_heatmap_for_groups = NULL,  # New param to control heatmap display for specific groups
                        show_contours = FALSE,  # Renamed parameter for adding heatmap contours
@@ -110,6 +110,14 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
   # Validate that group_vals corresponds to the values in group_col (if provided)
   if (!is.null(group_vals) && !all(group_vals %in% unique(data[[group_col]]))) {
     stop("Some values in 'group_vals' do not exist in the specified 'group_col'. Please check the group values.")
+  }
+
+  # Use column names as default labels if none are provided
+  if (is.null(x_label)) {
+    x_label <- x_col  # Default to the name of the x-axis column
+  }
+  if (is.null(y_label)) {
+    y_label <- y_col  # Default to the name of the y-axis column
   }
 
   # Define style-specific parameters
