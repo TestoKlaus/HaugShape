@@ -21,7 +21,7 @@ importFrom(MASS, kde2d)
 importFrom(grDevices, colorRampPalette, chull)
 
 # Import grid functions
-importFrom(grid, arrow)
+importFrom(grid, arrow, unit)
 
 # Import scales for rescaling
 importFrom(scales, rescale, gradient_n_pal)
