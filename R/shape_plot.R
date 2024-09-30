@@ -344,12 +344,13 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
   # Add custom axis labels with optional black borders (like text fields)
   if (show_label_text_fields) {
     plot <- plot +
-      ggplot2::geom_label(aes(x = max(x_range) + x_expand + x_label_adjust_x, y = -0.05 * diff(y_range) + x_label_adjust_y),
-                          label = x_label, size = x_label_size, label.padding = unit(0.3, "lines"),
-                          color = text_field_color, fill = text_field_fill) +
-      ggplot2::geom_label(aes(x = -0.02 * diff(x_range) - y_label_adjust_x, y = max(y_range) + y_expand + y_label_adjust_y),
-                          label = y_label, size = y_label_size, label.padding = unit(0.3, "lines"),
-                          color = text_field_color, fill = text_field_fill, angle = ifelse(rotate_y_label, 90, 0))
+      ggplot2::annotate("label", x = max(x_range) + x_expand + x_label_adjust_x,
+                        y = -0.05 * diff(y_range) + x_label_adjust_y,
+                        label = x_label, size = x_label_size, label.padding = unit(0.3, "lines"),
+                        color = text_field_color, fill = text_field_fill) +
+      ggplot2::annotate("label", x = -0.02 * diff(x_range) - y_label_adjust_x, y = max(y_range) + y_expand + y_label_adjust_y,
+                        label = y_label, size = y_label_size, label.padding = unit(0.3, "lines"),
+                        color = text_field_color, fill = text_field_fill, angle = ifelse(rotate_y_label, 90, 0))
   } else {
     plot <- plot +
       ggplot2::annotate("text", x = max(x_range) + x_expand + x_label_adjust_x,
@@ -358,6 +359,7 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
       ggplot2::annotate("text", x = -0.02 * diff(x_range) - y_label_adjust_x, y = max(y_range) + y_expand + y_label_adjust_y,
                         label = y_label, size = y_label_size, color = text_color, angle = ifelse(rotate_y_label, 90, 0))
   }
+
 
   return(plot)
 }
