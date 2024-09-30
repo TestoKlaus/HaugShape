@@ -64,7 +64,7 @@
 shape_plot <- function(data, x_col, y_col, group_col = NULL,
                        group_vals = NULL,  # Optional
                        hull_fill = "black", hull_color = "black", hull_linetype = "solid", hull_alpha = 0.1,
-                       title = "Shape Plot", x_label = NULL, y_label = NULL,
+                       title = NULL, x_label = NULL, y_label = NULL,
                        point_color = "black", point_fill = "white", point_shape = 21, point_size = 2,  # Can be vectors
                        title_size = 24, label_size = 20, tick_size = 15,
                        tick_length = 0.005,  # Proportional custom tick length (relative to plot size)
