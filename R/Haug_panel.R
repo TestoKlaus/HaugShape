@@ -29,8 +29,10 @@
 #' @param plot_height The height (in inches) of each individual plot in the panel. Default is 10.
 #' @param resolution The resolution (in DPI) for the output. Default is 300.
 #' @param plot_spacing The spacing between plots in the panel to prevent label cutoffs. Default is 0.3.
-#' @param x_label_adjust Horizontal adjustment for the x-axis label. Default is 0.
-#' @param y_label_adjust Vertical adjustment for the y-axis label. Default is 0.
+#' @param x_label_adjust_x Horizontal adjustment for the x-axis label. Default is 0.
+#' @param x_label_adjust_y Vertical adjustment for the x-axis label. Default is 0.
+#' @param y_label_adjust_x Horizontal adjustment for the y-axis label. Default is 0.
+#' @param y_label_adjust_y Vertical adjustment for the y-axis label. Default is 0.
 #' @param save_path (Optional) A file path to save the panel plot. If NULL, the plot is not saved. Default is NULL.
 #'
 #' @return A `patchwork` object with the combined panel of plots.
@@ -74,8 +76,10 @@ Haug_panel <- function(data, x_col, y_col, group_col = NULL,
                        plot_height = 10,  # Default height for each individual plot in inches
                        resolution = 300,  # Resolution in DPI for higher resolution output
                        plot_spacing = 0.3,  # Add spacing between plots to prevent cutting off axis labels
-                       x_label_adjust = 0,  # Adjust x-axis label position
-                       y_label_adjust = 0,  # Adjust y-axis label position
+                       x_label_adjust_x = 0,  # Adjust x-axis label position
+                       x_label_adjust_y = 0,  # Adjust x-axis label position
+                       y_label_adjust_x = 0,  # Adjust y-axis label position
+                       y_label_adjust_y = 0,  # Adjust y-axis label position
                        save_path = NULL  # Path to save the final plot, optional
 ) {
 
@@ -133,7 +137,8 @@ Haug_panel <- function(data, x_col, y_col, group_col = NULL,
                        contour_colors = colors, contour_linewidth = contour_linewidth,
                        show_hull_for_groups = hull_groups, show_heatmap_for_groups = heatmap_groups,
                        show_contours_for_groups = contour_groups, plot_style = plot_style,
-                       x_label_adjust = x_label_adjust, y_label_adjust = y_label_adjust)
+                       x_label_adjust_x = x_label_adjust_x, y_label_adjust_x = y_label_adjust_x,
+                       x_label_adjust_y = x_label_adjust_y, y_label_adjust_y = y_label_adjust_y)
     # Ensure plot is a ggplot object
     if (!inherits(plot, "ggplot")) {
       stop("Non-ggplot object detected in plot list (likely from shape_plot).")
