@@ -1,65 +1,82 @@
-#' shape_plot
+#' Generate a Customizable Scatter Plot with Hulls, Heatmaps, and Contours
 #'
-#' Generates a scatter plot of specified columns with optional grouping, hulls, heatmaps, contours, and customizable axis labels.
+#' The `shape_plot` function generates a scatter plot of specified columns with optional grouping. It supports various features such as convex hulls, heatmaps, and contour plots. The function provides extensive customization options for axis labels, colors, shapes, and plot aesthetics.
 #'
 #' @param data A data frame containing the data to be plotted.
 #' @param x_col A character string representing the name of the column to be plotted on the x-axis.
 #' @param y_col A character string representing the name of the column to be plotted on the y-axis.
-#' @param group_col (Optional) A character string representing the name of the grouping column, if group-specific aesthetics or hulls are required.
-#' @param group_vals (Optional) A vector of specific group values to be displayed. Only these groups will appear in the plot.
-#' @param hull_fill A vector specifying the fill color(s) for the convex hull(s). Defaults to "black". Can be a vector if multiple groups are shown.
-#' @param hull_color A vector specifying the border color(s) for the convex hull(s). Defaults to "black". Can be a vector if multiple groups are shown.
-#' @param hull_linetype A character string representing the linetype for the convex hull(s). Defaults to "solid".
-#' @param hull_alpha A numeric value between 0 and 1 specifying the transparency for the convex hull(s). Defaults to 0.1.
-#' @param title A character string specifying the title of the plot. Defaults to "Shape Plot".
-#' @param x_label A character string specifying the label for the x-axis. Defaults to the column name of x_col.
-#' @param y_label A character string specifying the label for the y-axis. Defaults to the column name of y_col.
-#' @param point_color A character string or vector specifying the color(s) of the points. Defaults to "black".
-#' @param point_fill A character string or vector specifying the fill color(s) of the points. Defaults to "white".
-#' @param point_shape An integer or vector specifying the shape(s) of the points. Defaults to 21 (circle).
-#' @param point_size A numeric value or vector specifying the size(s) of the points. Defaults to 2.
-#' @param title_size A numeric value specifying the font size for the plot title. Defaults to 24.
-#' @param label_size A numeric value specifying the font size for axis labels. Defaults to 20.
-#' @param tick_size A numeric value specifying the font size for axis tick labels. Defaults to 15.
-#' @param tick_length A numeric value specifying the proportional length of axis ticks relative to the plot size. Defaults to 0.005.
-#' @param tick_margin A numeric value specifying the margin around the plot. Defaults to 0.05.
-#' @param x_label_adjust_x A numeric value for horizontal adjustment of the x-axis label. Defaults to 0.
-#' @param x_label_adjust_y A numeric value for vertical adjustment of the x-axis label. Defaults to 0.
-#' @param y_label_adjust_x A numeric value for horizontal adjustment of the y-axis label. Defaults to 0.
-#' @param y_label_adjust_y A numeric value for vertical adjustment of the y-axis label. Defaults to 0.
-#' @param x_label_size A numeric value specifying the font size of the x-axis label. Defaults to 5.
-#' @param y_label_size A numeric value specifying the font size of the y-axis label. Defaults to 5.
-#' @param show_hulls A logical value indicating whether to display convex hulls. Defaults to FALSE.
-#' @param show_hull_for_groups (Optional) A character vector specifying which groups to display convex hulls for.
-#' @param show_heatmaps A logical value indicating whether to display heatmaps. Defaults to FALSE.
-#' @param heatmap_colors A list of vectors specifying the color gradient(s) for the heatmaps. Defaults to red and blue for two groups.
-#' @param heatmap_alpha A numeric value between 0 and 1 specifying the transparency of heatmaps. Defaults to 1.
-#' @param heatmap_bins A numeric value specifying the number of bins for the heatmap. Defaults to 30.
-#' @param show_heatmap_for_groups (Optional) A character vector specifying which groups to display heatmaps for.
-#' @param show_contours A logical value indicating whether to display contour lines over heatmaps. Defaults to FALSE.
-#' @param contour_colors A character string or vector specifying the color(s) of the contour lines. Defaults to "black".
-#' @param show_contours_for_groups (Optional) A character vector specifying which groups to display contour lines for.
-#' @param contour_linewidth A numeric value specifying the thickness of the contour lines. Defaults to 0.5.
-#' @param axis_linewidth A numeric value specifying the width of the axis lines and ticks. Defaults to 1.
-#' @param plot_style A character string specifying the style of the plot. Options are "Haug", "inverted_Haug", and "publication". Defaults to "Haug".
-#' @param rotate_y_label A logical value indicating whether the y-axis label should be rotated. Defaults to TRUE.
-#' @param show_label_text_fields A logical value indicating whether the axis labels should have text fields (black borders). Defaults to TRUE.
+#' @param group_col (Optional) A character string representing the name of the grouping column for color and style customization.
+#' @param group_vals (Optional) A vector specifying the group values to display. Only these groups will appear in the plot.
+#' @param hull_fill A vector specifying the fill color(s) for convex hull(s). Default is "black".
+#' @param hull_color A vector specifying the border color(s) for convex hull(s). Default is "black".
+#' @param hull_linetype A character string representing the line type for convex hull(s). Default is "solid".
+#' @param hull_alpha A numeric value between 0 and 1 specifying the transparency for convex hull(s). Default is 0.1.
+#' @param title A character string specifying the title of the plot. Default is NULL.
+#' @param x_label A character string specifying the label for the x-axis. Defaults to the name of `x_col` if not provided.
+#' @param y_label A character string specifying the label for the y-axis. Defaults to the name of `y_col` if not provided.
+#' @param point_color A character string or vector specifying the color(s) of the points. Default is "black".
+#' @param point_fill A character string or vector specifying the fill color(s) of the points. Default is "white".
+#' @param point_shape An integer or vector specifying the shape(s) of the points. Default is 21 (circle).
+#' @param point_size A numeric value or vector specifying the size(s) of the points. Default is 2.
+#' @param title_size A numeric value specifying the font size for the plot title. Default is 24.
+#' @param label_size A numeric value specifying the font size for the axis labels. Default is 20.
+#' @param tick_size A numeric value specifying the font size for axis tick labels. Default is 15.
+#' @param tick_length A numeric value specifying the proportional length of tick marks relative to plot size. Default is 0.005.
+#' @param tick_margin A numeric value specifying the margin around the plot. Default is 0.05.
+#' @param x_label_adjust_x A numeric value for horizontal adjustment of the x-axis label. Default is 0.
+#' @param x_label_adjust_y A numeric value for vertical adjustment of the x-axis label. Default is 0.
+#' @param y_label_adjust_x A numeric value for horizontal adjustment of the y-axis label. Default is 0.
+#' @param y_label_adjust_y A numeric value for vertical adjustment of the y-axis label. Default is 0.
+#' @param x_label_size A numeric value specifying the font size of the x-axis label. Default is 5.
+#' @param y_label_size A numeric value specifying the font size of the y-axis label. Default is 5.
+#' @param show_hulls A logical value indicating whether to display convex hulls around the groups. Default is FALSE.
+#' @param show_hull_for_groups (Optional) A vector specifying which groups to display convex hulls for.
+#' @param show_heatmaps A logical value indicating whether to display heatmaps. Default is FALSE.
+#' @param heatmap_colors A list of color gradients for the heatmaps, with each list element representing the gradient for a group.
+#' @param heatmap_alpha A numeric value between 0 and 1 specifying the transparency of heatmaps. Default is 1.
+#' @param heatmap_bins A numeric value specifying the number of bins for the heatmap density estimation. Default is 30.
+#' @param show_heatmap_for_groups (Optional) A vector specifying which groups to display heatmaps for.
+#' @param show_contours A logical value indicating whether to display contour lines over heatmaps. Default is FALSE.
+#' @param contour_colors A vector specifying the color(s) of contour lines. Default is "black".
+#' @param show_contours_for_groups (Optional) A vector specifying which groups to display contour lines for.
+#' @param contour_linewidth A numeric value specifying the thickness of contour lines. Default is 0.5.
+#' @param axis_linewidth A numeric value specifying the width of the axis lines and ticks. Default is 1.
+#' @param plot_style A character string specifying the style of the plot. Options include "Haug", "inverted_Haug", and "publication". Default is "Haug".
+#' @param rotate_y_label A logical value indicating whether to rotate the y-axis label. Default is TRUE.
+#' @param show_label_text_fields A logical value indicating whether to display black borders around axis labels. Default is TRUE.
 #'
-#' @return A ggplot object representing the generated scatter plot.
-#'
-#' @details
-#' The `shape_plot` function generates a customizable scatter plot that allows for grouped data visualization with optional features like hulls, heatmaps, and contours.
-#' It also offers extensive control over axis label positions and styles, making it suitable for publications and visual data analysis.
+#' @return A ggplot2 object representing the generated scatter plot.
 #'
 #' @examples
-#' # Example usage with hulls and heatmaps
-#' shape_plot(my_data, "PC1", "PC2", "Group", group_vals = c("A", "B"),
-#'            point_color = c("red", "blue"), show_hulls = TRUE, show_heatmaps = TRUE)
+#' # Create a data frame
+#'df <- data.frame(
+#'PC1 = rnorm(100),
+#'PC2 = rnorm(100),
+#'group = sample(c("A", "B", "C"), 100, replace = TRUE)
 #'
-#' # Example with contours and custom axis labels
-#' shape_plot(my_data, "Dim1", "Dim2", group_col = "Type",
-#'            show_contours = TRUE, contour_colors = c("black", "grey"),
-#'            x_label = "Dimension 1", y_label = "Dimension 2")
+#' # Scatterplot with hulls around groups A and C
+#'shape_plot(data = df, x_col = "PC1", y_col = "PC2", group_col = "group",
+#'           x_label = "PC1 (...)", x_label_adjust_x =-0.1, x_label_adjust_y =-0.1,
+#'           y_label = "PC2 (...)", y_label_adjust_y = 0.4, rotate_y_label = FALSE,
+#'           show_label_text_fields = FALSE,
+#'           axis_linewidth = 1.5,
+#'           title = "",
+#'           group_vals = c("A","B","C"),
+#'           point_fill = c("red","blue","green"),
+#'           point_shape = c(21,8,21),
+#'           point_color = c("red","blue","green"),
+#'           show_hulls = TRUE,
+#'           hull_fill = c("red","blue","green"),
+#'           show_hull_for_groups = c("A","C"))
+#' @export
+#' @import ggplot2
+#' @importFrom dplyr filter %>%
+#' @importFrom rlang sym
+#' @importFrom MASS kde2d
+#' @importFrom grDevices chull
+#' @importFrom scales rescale gradient_n_pal
+#' @importFrom grid unit arrow
+
 
 shape_plot <- function(data, x_col, y_col, group_col = NULL,
                        group_vals = NULL,  # Optional

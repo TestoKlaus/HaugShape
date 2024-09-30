@@ -1,63 +1,64 @@
-#' Create a customizable panel of plots (hulls, heatmaps, contours, or boxplots).
+#' Create a Customizable Panel of Plots (Hulls, Heatmaps, Contours, or Boxplots)
 #'
-#' This function generates a panel of plots based on the specified type. It can create panels with convex hulls,
-#' heatmaps, contours, or boxplots. Each plot is customizable and allows for different plot styles like "Haug"
-#' (default white background) or "inverted_Haug" (black background with white text).
+#' This function generates a panel of plots based on the specified type. It can create panels with convex hulls, heatmaps, contours,
+#' or boxplots. Each plot is customizable with options for group-specific aesthetics, plot style, and layout.
 #'
 #' @param data A data frame containing the variables to plot.
-#' @param x_col The column name (string) for the x-axis variable.
-#' @param y_col The column name (string) for the y-axis variable.
-#' @param group_col (Optional) The column name (string) for grouping data into categories.
+#' @param x_col A character string representing the name of the column to be plotted on the x-axis.
+#' @param y_col A character string representing the name of the column to be plotted on the y-axis.
+#' @param group_col (Optional) A character string representing the name of the grouping column.
 #' @param group_vals (Optional) A vector specifying the group values to be plotted. Must correspond to values in `group_col`.
 #' @param colors A vector of colors for each group. If NULL, the function automatically generates distinct colors.
 #' @param point_fill The fill color for scatter plot points. Default is "darkgrey".
-#' @param point_shape The shape of the scatter points. Can be a vector. Default is 21 (circle).
-#' @param point_size The size of the scatter points. Can be a vector. Default is 2.
-#' @param title_size Font size for the plot title. Default is 24.
-#' @param label_size Font size for the axis labels. Default is 20.
-#' @param tick_size Font size for the tick marks. Default is 15.
-#' @param tick_length The proportional length of tick marks relative to plot size. Default is 0.005.
-#' @param axis_linewidth The width of the axes and tick marks. Default is 1.
-#' @param hull_alpha The opacity level for convex hulls. Default is 0.3.
-#' @param heatmap_alpha The opacity level for heatmaps. Default is 1.3 (for better visibility).
-#' @param heatmap_bins The number of bins for the heatmap's density estimation. Default is 100.
-#' @param contour_linewidth The width of the contour lines. Default is 1.
-#' @param panel_type The type of panel to create. Can be "hulls", "heatmaps", "contours", or "boxplot". Default is "hulls".
-#' @param plot_style A string specifying the plot style. "Haug" uses a white background with black text, while "inverted_Haug" uses a black background with white text. Default is "Haug".
-#' @param ncol The number of columns in the panel layout. Default is 2.
-#' @param plot_width The width (in inches) of each individual plot in the panel. Default is 10.
-#' @param plot_height The height (in inches) of each individual plot in the panel. Default is 10.
-#' @param resolution The resolution (in DPI) for the output. Default is 300.
-#' @param plot_spacing The spacing between plots in the panel to prevent label cutoffs. Default is 0.3.
-#' @param x_label_adjust_x Horizontal adjustment for the x-axis label. Default is 0.
-#' @param x_label_adjust_y Vertical adjustment for the x-axis label. Default is 0.
-#' @param y_label_adjust_x Horizontal adjustment for the y-axis label. Default is 0.
-#' @param y_label_adjust_y Vertical adjustment for the y-axis label. Default is 0.
-#' @param save_path (Optional) A file path to save the panel plot. If NULL, the plot is not saved. Default is NULL.
+#' @param point_shape The shape of the scatter points. Default is 21 (circle).
+#' @param point_size The size of the scatter points. Default is 2.
+#' @param title_size A numeric value specifying the font size for plot titles. Default is 24.
+#' @param label_size A numeric value specifying the font size for axis labels. Default is 20.
+#' @param tick_size A numeric value specifying the font size for axis tick labels. Default is 15.
+#' @param tick_length A numeric value specifying the proportional length of axis ticks relative to plot size. Default is 0.005.
+#' @param axis_linewidth A numeric value specifying the width of the axes and tick marks. Default is 1.
+#' @param hull_alpha A numeric value specifying the transparency level for convex hulls. Default is 0.3.
+#' @param heatmap_alpha A numeric value specifying the transparency level for heatmaps. Default is 1.3.
+#' @param heatmap_bins A numeric value specifying the number of bins for heatmap density estimation. Default is 100.
+#' @param contour_linewidth A numeric value specifying the thickness of contour lines. Default is 1.
+#' @param panel_type A character string specifying the type of panel to create. Options are "hulls", "heatmaps", "contours", or "boxplot". Default is "hulls".
+#' @param plot_style A character string specifying the plot style. Options are "Haug" (default) and "inverted_Haug".
+#' @param ncol A numeric value specifying the number of columns in the panel layout. Default is 2.
+#' @param plot_width A numeric value specifying the width (in inches) of each individual plot in the panel. Default is 10.
+#' @param plot_height A numeric value specifying the height (in inches) of each individual plot in the panel. Default is 10.
+#' @param resolution A numeric value specifying the resolution (in DPI) for the output plot. Default is 300.
+#' @param plot_spacing A numeric value specifying the spacing between plots in the panel to prevent label cutoffs. Default is 0.3.
+#' @param x_label_adjust_x A numeric value for horizontal adjustment of the x-axis label. Default is 0.
+#' @param x_label_adjust_y A numeric value for vertical adjustment of the x-axis label. Default is 0.
+#' @param y_label_adjust_x A numeric value for horizontal adjustment of the y-axis label. Default is 0.
+#' @param y_label_adjust_y A numeric value for vertical adjustment of the y-axis label. Default is 0.
+#' @param save_path (Optional) A character string specifying the file path to save the output panel plot. If NULL, the plot is not saved.
 #'
-#' @return A `patchwork` object with the combined panel of plots.
+#' @return A `patchwork` object representing the combined panel of plots.
 #'
 #' @examples
 #' # Example data
 #' df <- data.frame(
-#'   x = rnorm(100),
-#'   y = rnorm(100),
+#'   PC1 = rnorm(100),
+#'   PC2 = rnorm(100),
 #'   group = sample(c("A", "B", "C"), 100, replace = TRUE)
 #' )
 #'
 #' # Create a panel of hull plots
-#' Haug_panel(df, "x", "y", group_col = "group", group_vals = c("A", "B", "C"),
-#'            panel_type = "hulls")
+#' Haug_panel(df, x_col = "PC1", y_col = "PC2", group_col = "group", group_vals = c("A", "B", "C"), panel_type = "hulls")
 #'
 #' # Create a panel of heatmap plots for each group
-#' Haug_panel(df, "x", "y", group_col = "group", group_vals = c("A", "B", "C"),
-#'            panel_type = "heatmaps")
+#' Haug_panel(df, x_col = "PC1", y_col = "PC2", group_col = "group", group_vals = c("A", "B", "C"), panel_type = "heatmaps")
 #'
 #' # Create a panel of boxplots for two PCs
-#' Haug_panel(df, "x", "y", group_col = "group", group_vals = c("A", "B"),
-#'            panel_type = "boxplot")
+#' Haug_panel(df, x_col = "PC1", y_col = "PC2", group_col = "group", group_vals = c("A", "B"), panel_type = "boxplot")
 #'
 #' @export
+#' @import ggplot2
+#' @importFrom patchwork wrap_plots plot_layout
+#' @importFrom RColorBrewer brewer.pal
+#' @importFrom base lapply length rep_len inherits
+#' @importFrom stats factor
 
 Haug_panel <- function(data, x_col, y_col, group_col = NULL,
                        group_vals = NULL,  # Optional

@@ -2,7 +2,7 @@
 % Please edit documentation in R/Haug_panel.R
 \name{Haug_panel}
 \alias{Haug_panel}
-\title{Create a customizable panel of plots (hulls, heatmaps, contours, or boxplots).}
+\title{Create a Customizable Panel of Plots (Hulls, Heatmaps, Contours, or Boxplots)}
 \usage{
 Haug_panel(
   data,
@@ -30,19 +30,21 @@ Haug_panel(
   plot_height = 10,
   resolution = 300,
   plot_spacing = 0.3,
-  x_label_adjust = 0,
-  y_label_adjust = 0,
+  x_label_adjust_x = 0,
+  x_label_adjust_y = 0,
+  y_label_adjust_x = 0,
+  y_label_adjust_y = 0,
   save_path = NULL
 )
 }
 \arguments{
 \item{data}{A data frame containing the variables to plot.}
 
-\item{x_col}{The column name (string) for the x-axis variable.}
+\item{x_col}{A character string representing the name of the column to be plotted on the x-axis.}
 
-\item{y_col}{The column name (string) for the y-axis variable.}
+\item{y_col}{A character string representing the name of the column to be plotted on the y-axis.}
 
-\item{group_col}{(Optional) The column name (string) for grouping data into categories.}
+\item{group_col}{(Optional) A character string representing the name of the grouping column.}
 
 \item{group_vals}{(Optional) A vector specifying the group values to be plotted. Must correspond to values in \code{group_col}.}
 
@@ -50,74 +52,74 @@ Haug_panel(
 
 \item{point_fill}{The fill color for scatter plot points. Default is "darkgrey".}
 
-\item{point_shape}{The shape of the scatter points. Can be a vector. Default is 21 (circle).}
+\item{point_shape}{The shape of the scatter points. Default is 21 (circle).}
 
-\item{point_size}{The size of the scatter points. Can be a vector. Default is 2.}
+\item{point_size}{The size of the scatter points. Default is 2.}
 
-\item{title_size}{Font size for the plot title. Default is 24.}
+\item{title_size}{A numeric value specifying the font size for plot titles. Default is 24.}
 
-\item{label_size}{Font size for the axis labels. Default is 20.}
+\item{label_size}{A numeric value specifying the font size for axis labels. Default is 20.}
 
-\item{tick_size}{Font size for the tick marks. Default is 15.}
+\item{tick_size}{A numeric value specifying the font size for axis tick labels. Default is 15.}
 
-\item{tick_length}{The proportional length of tick marks relative to plot size. Default is 0.005.}
+\item{tick_length}{A numeric value specifying the proportional length of axis ticks relative to plot size. Default is 0.005.}
 
-\item{axis_linewidth}{The width of the axes and tick marks. Default is 1.}
+\item{axis_linewidth}{A numeric value specifying the width of the axes and tick marks. Default is 1.}
 
-\item{hull_alpha}{The opacity level for convex hulls. Default is 0.3.}
+\item{hull_alpha}{A numeric value specifying the transparency level for convex hulls. Default is 0.3.}
 
-\item{heatmap_alpha}{The opacity level for heatmaps. Default is 1.3 (for better visibility).}
+\item{heatmap_alpha}{A numeric value specifying the transparency level for heatmaps. Default is 1.3.}
 
-\item{heatmap_bins}{The number of bins for the heatmap's density estimation. Default is 100.}
+\item{heatmap_bins}{A numeric value specifying the number of bins for heatmap density estimation. Default is 100.}
 
-\item{contour_linewidth}{The width of the contour lines. Default is 1.}
+\item{contour_linewidth}{A numeric value specifying the thickness of contour lines. Default is 1.}
 
-\item{panel_type}{The type of panel to create. Can be "hulls", "heatmaps", "contours", or "boxplot". Default is "hulls".}
+\item{panel_type}{A character string specifying the type of panel to create. Options are "hulls", "heatmaps", "contours", or "boxplot". Default is "hulls".}
 
-\item{plot_style}{A string specifying the plot style. "Haug" uses a white background with black text, while "inverted_Haug" uses a black background with white text. Default is "Haug".}
+\item{plot_style}{A character string specifying the plot style. Options are "Haug" (default) and "inverted_Haug".}
 
-\item{ncol}{The number of columns in the panel layout. Default is 2.}
+\item{ncol}{A numeric value specifying the number of columns in the panel layout. Default is 2.}
 
-\item{plot_width}{The width (in inches) of each individual plot in the panel. Default is 10.}
+\item{plot_width}{A numeric value specifying the width (in inches) of each individual plot in the panel. Default is 10.}
 
-\item{plot_height}{The height (in inches) of each individual plot in the panel. Default is 10.}
+\item{plot_height}{A numeric value specifying the height (in inches) of each individual plot in the panel. Default is 10.}
 
-\item{resolution}{The resolution (in DPI) for the output. Default is 300.}
+\item{resolution}{A numeric value specifying the resolution (in DPI) for the output plot. Default is 300.}
 
-\item{plot_spacing}{The spacing between plots in the panel to prevent label cutoffs. Default is 0.3.}
+\item{plot_spacing}{A numeric value specifying the spacing between plots in the panel to prevent label cutoffs. Default is 0.3.}
 
-\item{x_label_adjust}{Horizontal adjustment for the x-axis label. Default is 0.}
+\item{x_label_adjust_x}{A numeric value for horizontal adjustment of the x-axis label. Default is 0.}
 
-\item{y_label_adjust}{Vertical adjustment for the y-axis label. Default is 0.}
+\item{x_label_adjust_y}{A numeric value for vertical adjustment of the x-axis label. Default is 0.}
 
-\item{save_path}{(Optional) A file path to save the panel plot. If NULL, the plot is not saved. Default is NULL.}
+\item{y_label_adjust_x}{A numeric value for horizontal adjustment of the y-axis label. Default is 0.}
+
+\item{y_label_adjust_y}{A numeric value for vertical adjustment of the y-axis label. Default is 0.}
+
+\item{save_path}{(Optional) A character string specifying the file path to save the output panel plot. If NULL, the plot is not saved.}
 }
 \value{
-A \code{patchwork} object with the combined panel of plots.
+A \code{patchwork} object representing the combined panel of plots.
 }
 \description{
-This function generates a panel of plots based on the specified type. It can create panels with convex hulls,
-heatmaps, contours, or boxplots. Each plot is customizable and allows for different plot styles like "Haug"
-(default white background) or "inverted_Haug" (black background with white text).
+This function generates a panel of plots based on the specified type. It can create panels with convex hulls, heatmaps, contours,
+or boxplots. Each plot is customizable with options for group-specific aesthetics, plot style, and layout.
 }
 \examples{
 # Example data
 df <- data.frame(
-  x = rnorm(100),
-  y = rnorm(100),
+  PC1 = rnorm(100),
+  PC2 = rnorm(100),
   group = sample(c("A", "B", "C"), 100, replace = TRUE)
 )
 
 # Create a panel of hull plots
-Haug_panel(df, "x", "y", group_col = "group", group_vals = c("A", "B", "C"),
-           panel_type = "hulls")
+Haug_panel(df, x_col = "PC1", y_col = "PC2", group_col = "group", group_vals = c("A", "B", "C"), panel_type = "hulls")
 
 # Create a panel of heatmap plots for each group
-Haug_panel(df, "x", "y", group_col = "group", group_vals = c("A", "B", "C"),
-           panel_type = "heatmaps")
+Haug_panel(df, x_col = "PC1", y_col = "PC2", group_col = "group", group_vals = c("A", "B", "C"), panel_type = "heatmaps")
 
 # Create a panel of boxplots for two PCs
-Haug_panel(df, "x", "y", group_col = "group", group_vals = c("A", "B"),
-           panel_type = "boxplot")
+Haug_panel(df, x_col = "PC1", y_col = "PC2", group_col = "group", group_vals = c("A", "B"), panel_type = "boxplot")
 
 }
