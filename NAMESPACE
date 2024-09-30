@@ -3,3 +3,25 @@
 export(Haug_overview)
 export(Haug_panel)
 export(shape_plot_momocs)
+export(shape_plot)
+
+# Import ggplot2 functions
+importFrom(ggplot2, ggplot, aes, aes_string, geom_point, geom_polygon, geom_tile, geom_contour, geom_rect, geom_segment, geom_text, geom_label, annotate, labs, theme, element_rect, element_blank, element_text, scale_fill_gradientn)
+
+# Import dplyr functions
+importFrom(dplyr, filter, mutate, select)
+
+# Import rlang functions for tidy evaluation
+importFrom(rlang, sym)
+
+# Import MASS for kde2d
+importFrom(MASS, kde2d)
+
+# Import grDevices functions
+importFrom(grDevices, colorRampPalette, chull)
+
+# Import grid functions
+importFrom(grid, arrow)
+
+# Import scales for rescaling
+importFrom(scales, rescale, gradient_n_pal)
