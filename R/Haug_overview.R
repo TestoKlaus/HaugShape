@@ -112,17 +112,22 @@ Haug_overview <- function(data, x_col, y_col, group_col = NULL, group_vals = NUL
                show_contours_for_groups = group, plot_style = plot_style)
   })
 
+  # Ensure group_col has the same factor levels as group_vals
+  data[[group_col]] <- factor(data[[group_col]], levels = group_vals)
+
   # Create box plots for the two PCs
   pc1_boxplot <- ggplot2::ggplot(data, ggplot2::aes_string(x = group_col, y = x_col, fill = group_col)) +
     ggplot2::geom_boxplot() +
-    ggplot2::theme_minimal() + ggplot2::labs(title = paste("Boxplot for", x_col), x = group_col, y = x_col) +
-    ggplot2::scale_fill_manual(values = colors[match(unique(data[[group_col]]), group_vals)]) +  # Match colors to group_vals
+    ggplot2::theme_minimal() +
+    ggplot2::labs(title = paste("Boxplot for", x_col), x = group_col, y = x_col) +
+    ggplot2::scale_fill_manual(values = colors) +  # Use consistent colors
     ggplot2::theme(plot.title = ggplot2::element_text(size = title_size))
 
   pc2_boxplot <- ggplot2::ggplot(data, ggplot2::aes_string(x = group_col, y = y_col, fill = group_col)) +
     ggplot2::geom_boxplot() +
-    ggplot2::theme_minimal() + ggplot2::labs(title = paste("Boxplot for", y_col), x = group_col, y = y_col) +
-    ggplot2::scale_fill_manual(values = colors[match(unique(data[[group_col]]), group_vals)]) +  # Match colors to group_vals
+    ggplot2::theme_minimal() +
+    ggplot2::labs(title = paste("Boxplot for", y_col), x = group_col, y = y_col) +
+    ggplot2::scale_fill_manual(values = colors) +  # Use consistent colors
     ggplot2::theme(plot.title = ggplot2::element_text(size = title_size))
 
   # Combine all plots using patchwork
