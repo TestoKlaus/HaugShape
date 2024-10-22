@@ -70,12 +70,13 @@
 #'           show_hull_for_groups = c("A","C"))
 #' @export
 #' @import ggplot2
-#' @importFrom dplyr filter %>%
+#' @import dplyr
 #' @importFrom rlang sym
+#' @importFrom scales rescale gradient_n_pal
 #' @importFrom MASS kde2d
 #' @importFrom grDevices chull
-#' @importFrom scales rescale gradient_n_pal
-#' @importFrom grid unit arrow
+#' @importFrom grid arrow unit
+
 
 
 shape_plot <- function(data, x_col, y_col, group_col = NULL,

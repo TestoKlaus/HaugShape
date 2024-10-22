@@ -55,10 +55,15 @@
 #'
 #' @export
 #' @import ggplot2
-#' @importFrom patchwork wrap_plots plot_layout
+#' @import patchwork
 #' @importFrom RColorBrewer brewer.pal
-#' @importFrom base lapply length rep_len inherits
-#' @importFrom stats factor
+#' @import dplyr
+#' @importFrom rlang sym
+#' @importFrom scales rescale gradient_n_pal
+#' @importFrom MASS kde2d
+#' @importFrom grDevices chull
+#' @importFrom grid arrow unit
+
 
 Haug_panel <- function(data, x_col, y_col, group_col = NULL,
                        group_vals = NULL,  # Optional

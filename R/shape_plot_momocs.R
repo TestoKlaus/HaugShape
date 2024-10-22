@@ -26,7 +26,7 @@
 #' @param y_label_adjust (Optional) Adjustment for the y-axis label position. Default is 0.
 #'
 #' @return A scatterplot of PCA results with shapes displayed at the convex hull points.
-#' @export
+#'
 #'
 #' @examples
 #' # Load the Momocs package
@@ -47,7 +47,10 @@
 #'                   shape_size = 0.01, shift_distance = 0.1,
 #'                   vertical_offset = 0, horizontal_offset = 0,
 #'                   title = "PCA Shape Plot", x_label = "PC1", y_label = "PC2")
-
+#' @export
+#' @import ggplot2
+#' @importFrom grDevices chull
+#' @importFrom grid arrow unit
 
 shape_plot_momocs <- function(pca_result, coo_object,
                               pc_x = 1, pc_y = 2,  # PC axes for plotting
