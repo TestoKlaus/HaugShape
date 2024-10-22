@@ -13,16 +13,13 @@ LazyData: true
 RoxygenNote: 7.3.2
 Roxygen: list(markdown = TRUE)
 Imports:
-    ggplot2,
     dplyr,
-    rlang,
+    ggplot2,
+    patchwork,
     MASS,
+    RColorBrewer,
     grDevices,
     grid,
-    scales,
-    patchwork,
-    RColorBrewer,
-    Momocs
-
-
+    rlang,
+    scales
 
