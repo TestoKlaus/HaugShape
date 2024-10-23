@@ -77,15 +77,13 @@
 #' @importFrom grDevices chull
 #' @importFrom grid arrow unit
 
-
-
 shape_plot <- function(data, x_col, y_col, group_col = NULL,
                        group_vals = NULL,  # Optional
-                       hull_fill = "black", hull_color = "black", hull_linetype = "solid", hull_alpha = 0.1,
+                       hull_fill = NULL, hull_color = "black", hull_linetype = "solid", hull_alpha = 0.1,
                        title = NULL, x_label = NULL, y_label = NULL,
-                       point_color = "black", point_fill = "white", point_shape = 21, point_size = 2,  # Can be vectors
+                       point_color = NULL, point_fill = NULL, point_shape = 21, point_size = 2,  # Can be vectors
                        title_size = 24, label_size = 20, tick_size = 15,
-                       tick_length = 0.005,  # Proportional custom tick length (relative to plot size)
+                       tick_length = 0.005,  # Fixed tick length (same for all ticks)
                        tick_margin = 0.05,
                        x_label_adjust_x = 0,  # New horizontal adjustment for x-axis label
                        x_label_adjust_y = 0,  # New vertical adjustment for x-axis label
@@ -96,7 +94,7 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
                        show_hulls = FALSE,  # Default is now FALSE
                        show_hull_for_groups = NULL,  # Show hulls only for specified groups
                        show_heatmaps = FALSE,  # New parameter to control heatmap display
-                       heatmap_colors = list(c("white", "red"), c("white", "blue"),c("white","green")),  # Custom colors for heatmaps
+                       heatmap_colors = list(c("white", "red"), c("white", "blue"), c("white", "green")),  # Custom colors for heatmaps
                        heatmap_alpha = 1, heatmap_bins = 30,
                        show_heatmap_for_groups = NULL,  # New param to control heatmap display for specific groups
                        show_contours = FALSE,  # Renamed parameter for adding heatmap contours
@@ -105,11 +103,23 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
                        contour_linewidth = 0.5,  # New param to adjust contour linewidth
                        axis_linewidth = 1,  # New param to adjust axis and tick linewidth together
                        plot_style = "Haug",
-                       rotate_y_label = TRUE,  # New param to rotate the y-axis label and rectangle
-                       show_label_text_fields = TRUE  # New param to toggle label text fields
+                       rotate_y_label = FALSE,  # Default rotation for y-axis label is now FALSE
+                       show_label_text_fields = TRUE,  # Default text fields around axis labels is already TRUE
+                       export = FALSE,  # New parameter for exporting plot
+                       file_name = "shape_plot_output",  # Default file name for export
+                       file_path = NULL  # Optional path for file export
 ) {
   if (missing(data) || missing(x_col) || missing(y_col)) {
     stop("Missing required arguments: 'data', 'x_col', or 'y_col'. Please provide these parameters.")
+  }
+
+  # Set parameters for exported plot
+  if (export) {
+    axis_linewidth <- 0.5  # Adjust axis linewidth for export
+    point_size <- 1
+    x_label_size <- 3
+    y_label_size <- 3
+    tick_size <- 10
   }
 
   # Validate that group_col exists in the data if provided
@@ -126,7 +136,11 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
   }
 
   # Validate that group_vals corresponds to the values in group_col (if provided)
-  if (!is.null(group_vals) && !all(group_vals %in% unique(data[[group_col]]))) {
+  if (!is.null(group_vals) && !is.vector(group_vals)) {
+    group_vals <- as.vector(group_vals)
+  }
+
+  if (!all(group_vals %in% unique(data[[group_col]]))) {
     stop("Some values in 'group_vals' do not exist in the specified 'group_col'. Please check the group values.")
   }
 
@@ -148,7 +162,7 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
     text_field_color <- "white"  # Inverted text field text color
   } else if (plot_style == "publication") {
     background_color <- "white"
-    plot_background_color <- "lightgrey"
+    plot_background_color <- "#f1f1f1"
     text_color <- "black"
     axis_color <- "black"
     text_field_fill <- "white"
@@ -172,84 +186,83 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
   # Add the light grey rectangle for the "publication" style
   if (plot_style == "publication") {
     plot <- plot +
-      ggplot2::geom_rect(aes(xmin = min(data[[x_col]]) + 0.02 * diff(range(data[[x_col]])),
-                             xmax = max(data[[x_col]]) - 0.02 * diff(range(data[[x_col]])),
-                             ymin = min(data[[y_col]]) + 0.02 * diff(range(data[[y_col]])),
-                             ymax = max(data[[y_col]]) - 0.02 * diff(range(data[[y_col]]))),
+      ggplot2::geom_rect(aes(xmin = min(data[[x_col]]),
+                             xmax = max(data[[x_col]]),
+                             ymin = min(data[[y_col]]),
+                             ymax = max(data[[y_col]])),
                          fill = plot_background_color, color = NA)
   }
 
-  # Customize the theme
-  plot <- plot +
-    ggplot2::theme(
-      panel.background = ggplot2::element_rect(fill = background_color, color = background_color),
-      plot.background = ggplot2::element_rect(fill = background_color, color = background_color)
-    )
+  # Automatically assign colors if point_color or point_fill is not provided
+  if (is.null(point_color)) {
+    # Generate distinct colors for each group
+    n_groups <- length(group_vals)
+    point_color <- scales::hue_pal()(n_groups)  # Generate 'n_groups' distinct colors
+  }
 
-  # Handle heatmaps and contours if enabled and group_col and group_vals are provided
+  if (is.null(point_fill)) {
+    point_fill <- point_color  # Default fill to the same as point_color
+  }
+
+  # Automatically set hull_fill to point_color if hull_fill is not provided
+  if (is.null(hull_fill)) {
+    hull_fill <- point_color  # Use the same colors as point_color for the hulls
+  }
+
+  # Add the points for each group, even if they have fewer than 3 points
   if (!is.null(group_col) && !is.null(group_vals)) {
-    # Ensure contour_colors has the same length as group_vals or is a single color
-    if (length(contour_colors) == 1) {
-      contour_colors <- rep(contour_colors, length(group_vals))
-    }
+    point_color <- rep_len(point_color, length(group_vals))
+    point_fill <- rep_len(point_fill, length(group_vals))
+    point_shape <- rep_len(point_shape, length(group_vals))
+    point_size <- rep_len(point_size, length(group_vals))
 
     for (i in seq_along(group_vals)) {
       group_val <- group_vals[i]
-
-      # Filter the data for the specified group
       group_data <- data %>% dplyr::filter(!!rlang::sym(group_col) == group_val)
 
-      # Compute 2D density data for the group with expanded range and higher resolution for smoother contours
-      x_range_expanded <- range(data[[x_col]]) + c(-0.05, 0.05) * diff(range(data[[x_col]]))
-      y_range_expanded <- range(data[[y_col]]) + c(-0.05, 0.05) * diff(range(data[[y_col]]))
-      kde <- MASS::kde2d(group_data[[x_col]], group_data[[y_col]], n = 100,  # Increased n for smoother lines
-                         lims = c(x_range_expanded, y_range_expanded))
-      kde_df <- data.frame(expand.grid(x = kde$x, y = kde$y), z = as.vector(kde$z))
-
-      # Add 2D density heatmap for the group
-      if (show_heatmaps && (is.null(show_heatmap_for_groups) || group_val %in% show_heatmap_for_groups)) {
-        plot <- plot +
-          ggplot2::geom_tile(data = kde_df, ggplot2::aes(x = x, y = y, fill = scales::rescale(z)),
-                             alpha = heatmap_alpha, fill = scales::gradient_n_pal(heatmap_colors[[i]])(scales::rescale(kde_df$z)))
-      }
-
-      # Add contours for the group with adjustable linewidth
-      if (show_contours && (is.null(show_contours_for_groups) || group_val %in% show_contours_for_groups)) {
-        plot <- plot +
-          ggplot2::geom_contour(data = kde_df %>% dplyr::filter(x >= x_range_expanded[1] & x <= x_range_expanded[2] &
-                                                                  y >= y_range_expanded[1] & y <= y_range_expanded[2]),
-                                ggplot2::aes(x = x, y = y, z = z), color = contour_colors[i], size = contour_linewidth)
-      }
+      # Always plot the points, regardless of the number of points
+      plot <- plot +
+        ggplot2::geom_point(data = group_data,
+                            ggplot2::aes_string(x = x_col, y = y_col),
+                            color = point_color[i],
+                            fill = point_fill[i],
+                            shape = point_shape[i],
+                            size = point_size[i])
     }
+  } else {
+    # If no groups, just add points without any specific group aesthetic
+    plot <- plot +
+      ggplot2::geom_point(ggplot2::aes_string(x = x_col, y = y_col),
+                          color = point_color,
+                          fill = point_fill,
+                          shape = point_shape,
+                          size = point_size)
   }
 
   # Handle convex hulls if enabled and group_col and group_vals are provided
-  if (!show_heatmaps && !is.null(group_col) && show_hulls && !is.null(group_vals)) {
+  if (!is.null(group_col) && show_hulls && !is.null(group_vals)) {
     if (length(group_vals) > 0) {
-      # Adjust length of hull_fill, hull_color, hull_alpha to match the group_vals
       hull_fill <- rep_len(hull_fill, length(group_vals))
       hull_color <- rep_len(hull_color, length(group_vals))
       hull_alpha <- rep_len(hull_alpha, length(group_vals))
 
       for (i in seq_along(group_vals)) {
         group_val <- group_vals[i]
-        # Check if the hull for the current group should be displayed
-        if (is.null(show_hull_for_groups) || group_val %in% show_hull_for_groups) {
-          # Filter the data for the specified group
-          group_data <- data %>% dplyr::filter(!!rlang::sym(group_col) == group_val)
+        group_data <- data %>% dplyr::filter(!!rlang::sym(group_col) == group_val)
 
-          if (nrow(group_data) > 2) {  # A hull requires at least 3 points
-            hull_indices <- grDevices::chull(group_data[[x_col]], group_data[[y_col]])
-            hull_data <- group_data[hull_indices, ]
+        if (nrow(group_data) >= 3) {  # Only calculate the hull if there are 3 or more points
+          hull_indices <- grDevices::chull(group_data[[x_col]], group_data[[y_col]])
+          hull_data <- group_data[hull_indices, ]
 
-            plot <- plot +
-              ggplot2::geom_polygon(data = hull_data,
-                                    ggplot2::aes_string(x = x_col, y = y_col),
-                                    fill = hull_fill[i],
-                                    color = hull_color[i],
-                                    linetype = hull_linetype,
-                                    alpha = hull_alpha[i])
-          }
+          plot <- plot +
+            ggplot2::geom_polygon(data = hull_data,
+                                  ggplot2::aes_string(x = x_col, y = y_col),
+                                  fill = hull_fill[i],
+                                  color = hull_color[i],
+                                  linetype = hull_linetype,
+                                  alpha = hull_alpha[i])
+        } else {
+          warning(paste("Group", group_val, "has fewer than 3 points, skipping hull calculation."))
         }
       }
     }
@@ -266,7 +279,12 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
       group_val <- group_vals[i]
       group_data <- data %>% dplyr::filter(!!rlang::sym(group_col) == group_val)
 
-      # Add the points for the group with the respective aesthetics
+      # Check if the group has fewer than 3 points and skip the hull calculation, but allow plotting
+      if (nrow(group_data) < 3) {
+        warning(paste("Group", group_val, "has fewer than 3 points. Plotting the points, but skipping any hull calculation."))
+      }
+
+      # Plot the points for the group, even if it has fewer than 3 points
       plot <- plot +
         ggplot2::geom_point(data = group_data,
                             ggplot2::aes_string(x = x_col, y = y_col),
@@ -312,7 +330,7 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
       axis.ticks = ggplot2::element_blank(),  # Remove default ticks
       axis.text = ggplot2::element_blank(),   # Remove default tick labels
       axis.title.x = ggplot2::element_blank(),  # Hide default x-axis label
-      axis.title.y = ggplot2::element_blank(),  # Hide default y-axis label
+      axis.title.y = ggplot2::element_blank(),  # **Hide default y-axis label**
       plot.title = ggplot2::element_text(size = title_size, color = text_color),  # Center the title
       plot.background = ggplot2::element_rect(fill = background_color, color = background_color),  # Background
       plot.margin = ggplot2::margin(tick_margin, tick_margin, tick_margin, tick_margin)  # Margins
@@ -330,16 +348,15 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
                               x = 0, xend = 0),
                           arrow = grid::arrow(length = grid::unit(0.3, "cm")), color = axis_color, size = axis_linewidth)
 
-  # Add custom tick marks on the x-axis with adjustable linewidth
+  # Customizing the axes and tick marks with fixed tick length
   plot <- plot +
     ggplot2::geom_segment(data = data.frame(x = x_ticks),
-                          ggplot2::aes(x = x, xend = x, y = -x_tick_length, yend = x_tick_length),
+                          ggplot2::aes(x = x, xend = x, y = -tick_length, yend = tick_length),
                           color = axis_color, size = axis_linewidth)
 
-  # Add custom tick marks on the y-axis with adjustable linewidth
   plot <- plot +
     ggplot2::geom_segment(data = data.frame(y = y_ticks),
-                          ggplot2::aes(y = y, yend = y, x = -y_tick_length, xend = y_tick_length),
+                          ggplot2::aes(y = y, yend = y, x = -tick_length, xend = tick_length),
                           color = axis_color, size = axis_linewidth)
 
   # Adjust position of tick labels for x-axis based on tick_length
@@ -357,7 +374,7 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
                        size = tick_size / 3, color = text_color)  # Position tick labels to the right of the y-axis and adjust size
 
   # Add titles and axis labels using labs (after all other layers)
-  plot <- plot + ggplot2::labs(title = title)
+  plot <- plot + ggplot2::labs(title = title, y = NULL)  # Set y to NULL to avoid duplicate y-label
 
   # Add custom axis labels with optional black borders (like text fields)
   if (show_label_text_fields) {
@@ -366,7 +383,9 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
                         y = -0.05 * diff(y_range) + x_label_adjust_y,
                         label = x_label, size = x_label_size, label.padding = unit(0.3, "lines"),
                         color = text_field_color, fill = text_field_fill) +
-      ggplot2::annotate("label", x = -0.02 * diff(x_range) - y_label_adjust_x, y = max(y_range) + y_expand + y_label_adjust_y,
+      ggplot2::annotate("label",
+                        x = -0.02 * diff(x_range) - (-1 * y_label_adjust_x),  # Inverted horizontal adjustment for y-axis
+                        y = max(y_range) + y_expand + y_label_adjust_y,  # Inverted vertical adjustment for y-axis
                         label = y_label, size = y_label_size, label.padding = unit(0.3, "lines"),
                         color = text_field_color, fill = text_field_fill, angle = ifelse(rotate_y_label, 90, 0))
   } else {
@@ -374,10 +393,26 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
       ggplot2::annotate("text", x = max(x_range) + x_expand + x_label_adjust_x,
                         y = -0.05 * diff(y_range) + x_label_adjust_y,
                         label = x_label, size = x_label_size, color = text_color) +
-      ggplot2::annotate("text", x = -0.02 * diff(x_range) - y_label_adjust_x, y = max(y_range) + y_expand + y_label_adjust_y,
+      ggplot2::annotate("text",
+                        x = -0.02 * diff(x_range) - (-1 * y_label_adjust_x),  # Inverted horizontal adjustment for y-axis
+                        y = max(y_range) + y_expand + y_label_adjust_y,  # Inverted vertical adjustment for y-axis
                         label = y_label, size = y_label_size, color = text_color, angle = ifelse(rotate_y_label, 90, 0))
   }
 
+  # Export the plot if export = TRUE
+  if (export) {
+    if (is.null(file_path)) {
+      file_path <- paste0(file_name, ".tiff")
+    }
+
+    # Calculate width and height in inches based on pixel size and DPI
+    width_in <- 4096 / 600  # 4096 px wide at 600 DPI
+    height_in <- 2160 / 600  # 2160 px high at 600 DPI
+
+    # Save the plot using ggsave with the specified size and DPI
+    ggsave(filename = file_path, plot = plot, device = "tiff", dpi = 600, width = width_in, height = height_in)
+    message(paste("Plot exported to", file_path, "with dimensions 4096x2160 px at 600 DPI"))
+  }
 
   return(plot)
 }
