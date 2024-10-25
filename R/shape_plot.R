@@ -1,6 +1,6 @@
-#' Generate a Customizable Scatter Plot with Hulls, Heatmaps, and Contours
+#' Generate a Customizable Scatter Plot with Hulls and Contours
 #'
-#' The `shape_plot` function generates a scatter plot of specified columns with optional grouping. It supports various features such as convex hulls, heatmaps, and contour plots. The function provides extensive customization options for axis labels, colors, shapes, and plot aesthetics.
+#' The `shape_plot` function generates a scatter plot of specified columns with optional grouping. It supports various features such as convex hulls and contour plots. The function provides extensive customization options for axis labels, colors, shapes, and plot aesthetics.
 #'
 #' @param data A data frame containing the data to be plotted.
 #' @param x_col A character string representing the name of the column to be plotted on the x-axis.
@@ -31,12 +31,7 @@
 #' @param y_label_size A numeric value specifying the font size of the y-axis label. Default is 5.
 #' @param show_hulls A logical value indicating whether to display convex hulls around the groups. Default is FALSE.
 #' @param show_hull_for_groups (Optional) A vector specifying which groups to display convex hulls for.
-#' @param show_heatmaps A logical value indicating whether to display heatmaps. Default is FALSE.
-#' @param heatmap_colors A list of color gradients for the heatmaps, with each list element representing the gradient for a group.
-#' @param heatmap_alpha A numeric value between 0 and 1 specifying the transparency of heatmaps. Default is 1.
-#' @param heatmap_bins A numeric value specifying the number of bins for the heatmap density estimation. Default is 30.
-#' @param show_heatmap_for_groups (Optional) A vector specifying which groups to display heatmaps for.
-#' @param show_contours A logical value indicating whether to display contour lines over heatmaps. Default is FALSE.
+#' @param show_contours A logical value indicating whether to display contour lines. Default is FALSE.
 #' @param contour_colors A vector specifying the color(s) of contour lines. Default is "black".
 #' @param show_contours_for_groups (Optional) A vector specifying which groups to display contour lines for.
 #' @param contour_linewidth A numeric value specifying the thickness of contour lines. Default is 0.5.
@@ -48,26 +43,6 @@
 #' @return A ggplot2 object representing the generated scatter plot.
 #'
 #' @examples
-#' # Create a data frame
-#'df <- data.frame(
-#'PC1 = rnorm(100),
-#'PC2 = rnorm(100),
-#'group = sample(c("A", "B", "C"), 100, replace = TRUE)
-#'
-#' # Scatterplot with hulls around groups A and C
-#'shape_plot(data = df, x_col = "PC1", y_col = "PC2", group_col = "group",
-#'           x_label = "PC1 (...)", x_label_adjust_x =-0.1, x_label_adjust_y =-0.1,
-#'           y_label = "PC2 (...)", y_label_adjust_y = 0.4, rotate_y_label = FALSE,
-#'           show_label_text_fields = FALSE,
-#'           axis_linewidth = 1.5,
-#'           title = "",
-#'           group_vals = c("A","B","C"),
-#'           point_fill = c("red","blue","green"),
-#'           point_shape = c(21,8,21),
-#'           point_color = c("red","blue","green"),
-#'           show_hulls = TRUE,
-#'           hull_fill = c("red","blue","green"),
-#'           show_hull_for_groups = c("A","C"))
 #' @export
 #' @import ggplot2
 #' @import dplyr
@@ -93,11 +68,7 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
                        y_label_size = 5,  # New parameter for y-axis label size
                        show_hulls = FALSE,  # Default is now FALSE
                        show_hull_for_groups = NULL,  # Show hulls only for specified groups
-                       show_heatmaps = FALSE,  # New parameter to control heatmap display
-                       heatmap_colors = list(c("white", "red"), c("white", "blue"), c("white", "green")),  # Custom colors for heatmaps
-                       heatmap_alpha = 1, heatmap_bins = 30,
-                       show_heatmap_for_groups = NULL,  # New param to control heatmap display for specific groups
-                       show_contours = FALSE,  # Renamed parameter for adding heatmap contours
+                       show_contours = FALSE,  # Renamed parameter for adding contours
                        contour_colors = "black",  # Color for contour lines
                        show_contours_for_groups = NULL,  # New param to selectively show contours
                        contour_linewidth = 0.5,  # New param to adjust contour linewidth
@@ -268,6 +239,37 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
     }
   }
 
+  # Add contours if enabled and group_col and group_vals are provided
+  if (!is.null(group_col) && show_contours && !is.null(group_vals)) {
+    for (i in seq_along(group_vals)) {
+      group_val <- group_vals[i]
+
+      # Only apply contours to the specified groups
+      if (group_val %in% show_contours_for_groups) {
+        group_data <- data %>% dplyr::filter(!!rlang::sym(group_col) == group_val)
+
+        # Only calculate the contours if there are enough points
+        if (nrow(group_data) >= 3) {
+          # Estimate 2D density using kde2d
+          density <- MASS::kde2d(group_data[[x_col]], group_data[[y_col]], n = 100)
+
+          # Convert kde2d output to a data frame for ggplot
+          contour_data <- expand.grid(x = density$x, y = density$y)
+          contour_data$z <- as.vector(density$z)
+
+          # Add contour plot
+          plot <- plot +
+            ggplot2::geom_contour(data = contour_data,
+                                  ggplot2::aes(x = x, y = y, z = z),
+                                  color = contour_colors[i],
+                                  size = contour_linewidth)
+        }
+      }
+    }
+  }
+
+
+
   # Add points for each group separately to ensure correct color and style mapping
   if (!is.null(group_col) && !is.null(group_vals)) {
     point_color <- rep_len(point_color, length(group_vals))
@@ -379,25 +381,28 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
   # Add custom axis labels with optional black borders (like text fields)
   if (show_label_text_fields) {
     plot <- plot +
-      ggplot2::annotate("label", x = max(x_range) + x_expand + x_label_adjust_x,
-                        y = -0.05 * diff(y_range) + x_label_adjust_y,
+      ggplot2::annotate("label",
+                        x = max(x_range) + x_expand + as.numeric(x_label_adjust_x),  # Use numeric addition for x adjustment
+                        y = -0.05 * diff(y_range) + as.numeric(x_label_adjust_y),  # Use numeric addition for y adjustment
                         label = x_label, size = x_label_size, label.padding = unit(0.3, "lines"),
                         color = text_field_color, fill = text_field_fill) +
       ggplot2::annotate("label",
-                        x = -0.02 * diff(x_range) - (-1 * y_label_adjust_x),  # Inverted horizontal adjustment for y-axis
-                        y = max(y_range) + y_expand + y_label_adjust_y,  # Inverted vertical adjustment for y-axis
+                        x = as.numeric(y_label_adjust_x),  # Fixed position for y-label
+                        y = max(y_range) + 0.12 * max(y_range) + y_expand + as.numeric(y_label_adjust_y),  # Fixed vertical adjustment for y-label
                         label = y_label, size = y_label_size, label.padding = unit(0.3, "lines"),
                         color = text_field_color, fill = text_field_fill, angle = ifelse(rotate_y_label, 90, 0))
   } else {
     plot <- plot +
-      ggplot2::annotate("text", x = max(x_range) + x_expand + x_label_adjust_x,
-                        y = -0.05 * diff(y_range) + x_label_adjust_y,
+      ggplot2::annotate("text",
+                        x = max(x_range) + x_expand + as.numeric(x_label_adjust_x),  # Use numeric addition for x adjustment
+                        y = -0.05 * diff(y_range) + as.numeric(x_label_adjust_y),  # Use numeric addition for y adjustment
                         label = x_label, size = x_label_size, color = text_color) +
       ggplot2::annotate("text",
-                        x = -0.02 * diff(x_range) - (-1 * y_label_adjust_x),  # Inverted horizontal adjustment for y-axis
-                        y = max(y_range) + y_expand + y_label_adjust_y,  # Inverted vertical adjustment for y-axis
+                        x = as.numeric(y_label_adjust_x),  # Fixed position for y-label
+                        y = max(y_range) + 0.12 * max(y_range) + y_expand + as.numeric(y_label_adjust_y),  # Fixed vertical adjustment for y-label
                         label = y_label, size = y_label_size, color = text_color, angle = ifelse(rotate_y_label, 90, 0))
   }
+
 
   # Export the plot if export = TRUE
   if (export) {
