@@ -1,13 +1,89 @@
-Haug_overview <- function(data, cols = c("col1", "col2"), group_col = NULL, group_vals = NULL,
-                          colors = NULL, point_color = NULL, point_fill = NULL, point_shape = NULL, point_size = NULL,
-                          title_size = 24, label_size = 20, tick_size = 15, tick_length = 0.005,
-                          axis_linewidth = 1, hull_alpha = 0.3, contour_linewidth = 1, plot_style = "Haug",
-                          ncol = 2, plot_width = 10, plot_height = 10,
-                          resolution = 300, plot_spacing = 0.3, save_path = NULL, export_pdf = FALSE, pdf_file_name = "overview_plots.pdf") {
+#' Generate an Overview of Hull, Contour, and Box Plots
+#'
+#' The `Haug_overview` function creates a multi-panel overview of scatter plots, contour plots, and a boxplot for specified column pairs in the data. Hull plots and contour plots are generated for each pair of columns, with contour plots available for each group specified. If `group_vals` is not provided, contours will be generated for every unique group in the `group_col`. Additionally, a combined boxplot is created to compare groups across all selected columns.
+#'
+#' @param data A data frame containing the data to be plotted.
+#' @param cols A character vector specifying pairs of column names to plot. Must contain 2, 4, or 6 column names.
+#' @param group_col (Optional) A character string or bare column name representing the grouping column for color and style customization.
+#' @param group_vals (Optional) A vector specifying the group values to display. If NULL, all unique values in `group_col` are used.
+#' @param colors A vector specifying the colors for each group. If NULL, colors are automatically generated.
+#' @param point_color A character string or vector specifying the color(s) of the points. Default is `colors`.
+#' @param point_fill A character string or vector specifying the fill color(s) of the points. Default is `colors`.
+#' @param point_shape An integer or vector specifying the shape(s) of the points. Default is 21 (circle).
+#' @param point_size A numeric value or vector specifying the size(s) of the points. Default is 2.
+#' @param title_size A numeric value specifying the font size for the plot titles. Default is 24.
+#' @param label_size A numeric value specifying the font size for the axis labels. Default is 20.
+#' @param tick_size A numeric value specifying the font size for axis tick labels. Default is 15.
+#' @param tick_length A numeric value specifying the proportional length of tick marks relative to plot size. Default is 0.005.
+#' @param axis_linewidth A numeric value specifying the width of the axis lines and ticks. Default is 1.
+#' @param hull_alpha A numeric value between 0 and 1 specifying the transparency for convex hulls in the hull plots. Default is 0.3.
+#' @param contour_linewidth A numeric value specifying the thickness of contour lines. Default is 1.
+#' @param plot_style A character string specifying the style of the plot. Options include "Haug", "inverted_Haug", and "publication". Default is "Haug".
+#' @param ncol (unused) An integer specifying the number of columns in the PDF layout. Default is 2.
+#' @param plot_width A numeric value specifying the width of each plot in inches for PDF export. Default is 10.
+#' @param plot_height A numeric value specifying the height of each plot in inches for PDF export. Default is 10.
+#' @param resolution A numeric value specifying the resolution of the exported PDF file in DPI. Default is 300.
+#' @param plot_spacing A numeric value specifying the spacing between plots in the PDF. Default is 0.3.
+#' @param save_path An optional file path to save the plots. If NULL, the plots are saved in the current working directory.
+#' @param export_pdf A logical value indicating whether to export the overview as a multi-page PDF. Default is FALSE.
+#' @param pdf_file_name A character string specifying the name of the exported PDF file if `export_pdf = TRUE`. Default is "overview_plots.pdf".
+#' @param show_all_hulls A logical value indicating whether to show all group hulls. Default is FALSE.
+#' @param show_all_contours A logical value indicating whether to show all group contours. Default is FALSE.
+#'
+#' @return A list containing:
+#' \describe{
+#'   \item{hull_and_contours}{A list of hull and contour plots for each specified column pair.}
+#'   \item{boxplot}{A combined boxplot comparing groups across all specified columns.}
+#' }
+#'
+#' @examples
+#' # Example usage:
+#' test_data <- data.frame(
+#'   col1 = rnorm(100),
+#'   col2 = rnorm(100),
+#'   col3 = rnorm(100),
+#'   col4 = rnorm(100),
+#'   group = sample(c("A", "B", "C"), 100, replace = TRUE)
+#' )
+#' Haug_overview(data = test_data, cols = c("col1", "col2", "col3", "col4"), group_col = "group", export_pdf = TRUE)
+#'
+#' @export
+#' @import ggplot2
+#' @import dplyr
+#' @importFrom scales hue_pal
+#' @importFrom patchwork wrap_plots
+
+Haug_overview <- function(data,
+                          cols = c("col1","col2"),
+                          group_col = NULL,
+                          group_vals = NULL,
+                          colors = NULL,
+                          point_color = NULL,
+                          point_fill = NULL,
+                          point_shape = NULL,
+                          point_size = NULL,
+                          title_size = 24,
+                          label_size = 20,
+                          tick_size = 15,
+                          tick_length = 0.005,
+                          axis_linewidth = 1,
+                          hull_alpha = 0.3,
+                          contour_linewidth = 1,
+                          plot_style = "Haug",
+                          ncol = 2,
+                          plot_width = 10,
+                          plot_height = 10,
+                          resolution = 300,
+                          plot_spacing = 0.3,
+                          save_path = NULL,
+                          export_pdf = FALSE,
+                          pdf_file_name = "overview_plots.pdf",
+                          show_all_hulls = FALSE,
+                          show_all_contours = FALSE) {
 
   # Error handling for missing required parameters
-  if (length(cols) %% 2 != 0 || length(cols) > 6) {
-    stop("Please provide 2, 4, or 6 column names in 'cols'.")
+  if (length(cols) %% 2 != 0 || length(cols) > 20) {
+    stop("Please provide 2, 4, 6, ..., 20 column names in 'cols'.")
   }
 
   # Validate that group_col exists in the data if provided
@@ -20,6 +96,11 @@ Haug_overview <- function(data, cols = c("col1", "col2"), group_col = NULL, grou
     if (!col %in% colnames(data)) {
       stop(paste("The column", col, "does not exist in the data. Please provide a valid column name."))
     }
+  }
+
+  # Assign group_vals to all unique values in group_col if not provided
+  if (is.null(group_vals) && !is.null(group_col)) {
+    group_vals <- unique(data[[group_col]])
   }
 
   # Validate that group_vals correspond to the values in group_col (if provided)
@@ -49,14 +130,14 @@ Haug_overview <- function(data, cols = c("col1", "col2"), group_col = NULL, grou
 
   generate_plots_for_column_pair <- function(data, col1, col2, group_col, group_vals, colors, point_color, point_fill,
                                              point_shape, point_size, title_size, label_size, tick_size, tick_length, axis_linewidth,
-                                             hull_alpha, contour_linewidth, plot_style) {
+                                             hull_alpha, contour_linewidth, plot_style, show_all_hulls, show_all_contours) {
 
     # Dynamically calculate axis adjustments based on data range for the current column pair
     x_range <- range(data[[col1]], na.rm = TRUE)
     y_range <- range(data[[col2]], na.rm = TRUE)
 
     # Move x-axis label 1% lower for the current column pair
-    x_label_adjust_y <- -0.01 * (y_range[2] - y_range[1])
+    x_label_adjust_y <- -0.02 * (y_range[2] - y_range[1])
 
     # Move y-axis label 2% to the left for the current column pair in contour plots
     y_label_adjust_x <- -0.02 * (x_range[2] - x_range[1])
@@ -64,28 +145,64 @@ Haug_overview <- function(data, cols = c("col1", "col2"), group_col = NULL, grou
     # Adjust tick length based on the ranges of the current axes
     tick_length <- 0.005 * min(diff(x_range), diff(y_range))
 
-    # Create hull plot for the column pair
+    # Ensure single values for shape and size for each plot
+    point_shape <- if (length(point_shape) == 1) point_shape else point_shape[1]
+    point_size <- if (length(point_size) == 1) point_size else point_size[1]
+
+    # Calculate the sample size for each group if group_col is provided
+    if (!is.null(group_col)) {
+      sample_counts <- data %>%
+        dplyr::filter(!!rlang::sym(group_col) %in% group_vals) %>%
+        dplyr::count(!!rlang::sym(group_col)) %>%
+        dplyr::rename(group = !!rlang::sym(group_col), count = n)
+    } else {
+      sample_counts <- NULL
+    }
+
+    # Create combined hull plot for the column pair
+    hull_plot_title <- paste("Hulls for", col1, "vs", col2)
     hull_plot <- shape_plot(data, x_col = col1, y_col = col2, group_col = group_col, group_vals = group_vals,
                             point_color = point_color, point_fill = point_fill, point_shape = point_shape, point_size = point_size,
-                            title = paste("Hulls for", col1, "vs", col2), title_size = title_size, label_size = label_size,
+                            title = hull_plot_title, title_size = title_size, label_size = label_size,
                             tick_size = tick_size, tick_length = tick_length, axis_linewidth = axis_linewidth,
                             show_hulls = TRUE, hull_fill = colors, hull_alpha = hull_alpha, plot_style = plot_style,
                             x_label_adjust_y = x_label_adjust_y)
 
-    # Create contour plots for each group for the column pair
-    contour_plots <- lapply(group_vals, function(group) {
-      shape_plot(data, x_col = col1, y_col = col2, group_col = group_col, group_vals = group_vals,
-                 point_color = point_color, point_fill = point_fill, point_shape = point_shape, point_size = point_size,
-                 title = paste("Contours for Group", group, "(", col1, "vs", col2, ")"), title_size = title_size, label_size = label_size,
-                 tick_size = tick_size, tick_length = tick_length, axis_linewidth = axis_linewidth,
-                 show_contours = TRUE, contour_colors = colors, contour_linewidth = contour_linewidth,
-                 show_contours_for_groups = group, plot_style = plot_style,
-                 x_label_adjust_y = x_label_adjust_y, y_label_adjust_x = y_label_adjust_x)
-    })
+    # Create individual hull plots if show_all_hulls is TRUE
+    if (show_all_hulls && !is.null(group_vals)) {
+      individual_hull_plots <- lapply(group_vals, function(group) {
+        count <- sample_counts %>% dplyr::filter(group == !!group) %>% dplyr::pull(count)
+        plot_title <- paste("Hull for Group", group, "(", col1, "vs", col2, ", n =", count, ")")
+        shape_plot(data, x_col = col1, y_col = col2, group_col = group_col, group_vals = group_vals,
+                   point_color = point_color, point_fill = point_fill, point_shape = point_shape, point_size = point_size,
+                   title = plot_title, title_size = title_size, label_size = label_size,
+                   tick_size = tick_size, tick_length = tick_length, axis_linewidth = axis_linewidth,
+                   show_hulls = TRUE, hull_fill = colors, hull_alpha = hull_alpha, plot_style = plot_style,
+                   show_hull_for_groups = group, x_label_adjust_y = x_label_adjust_y)
+      })
+    } else {
+      individual_hull_plots <- NULL
+    }
 
-    return(list(hull_plot = hull_plot, contour_plots = contour_plots))
+    # Create contour plots for each group for the column pair if show_all_contours is TRUE
+    contour_plots <- if (show_all_contours) {
+      lapply(group_vals, function(group) {
+        count <- sample_counts %>% dplyr::filter(group == !!group) %>% dplyr::pull(count)
+        plot_title <- paste("Contours for Group", group, "(", col1, "vs", col2, ", n =", count, ")")
+        shape_plot(data, x_col = col1, y_col = col2, group_col = group_col, group_vals = group_vals,
+                   point_color = point_color, point_fill = point_fill, point_shape = point_shape, point_size = point_size,
+                   title = plot_title, title_size = title_size, label_size = label_size,
+                   tick_size = tick_size, tick_length = tick_length, axis_linewidth = axis_linewidth,
+                   show_contours = TRUE, contour_colors = colors, contour_linewidth = contour_linewidth,
+                   show_contours_for_groups = group, plot_style = plot_style,
+                   x_label_adjust_y = x_label_adjust_y, y_label_adjust_x = y_label_adjust_x)
+      })
+    } else {
+      NULL
+    }
+
+    return(list(hull_plot = hull_plot, individual_hull_plots = individual_hull_plots, contour_plots = contour_plots))
   }
-
 
   # Reshape the data into long format for a single boxplot comparing groups across columns
   data_long <- data %>%
@@ -109,7 +226,7 @@ Haug_overview <- function(data, cols = c("col1", "col2"), group_col = NULL, grou
     col2 <- cols[i + 1]
     plots <- generate_plots_for_column_pair(data, col1, col2, group_col, group_vals, colors, point_color, point_fill,
                                             point_shape, point_size, title_size, label_size, tick_size, tick_length, axis_linewidth,
-                                            hull_alpha, contour_linewidth, plot_style)
+                                            hull_alpha, contour_linewidth, plot_style, show_all_hulls, show_all_contours)
     all_plots <- c(all_plots, list(plots))
   }
 
@@ -125,15 +242,27 @@ Haug_overview <- function(data, cols = c("col1", "col2"), group_col = NULL, grou
       print(patchwork::wrap_plots(page, ncol = 1))
     }
 
-    # 2. Print the contour plots (2 per page)
-    for (plot_set in all_plots) {
-      contour_pages <- split(plot_set$contour_plots, ceiling(seq_along(plot_set$contour_plots) / 2))
-      for (page in contour_pages) {
-        print(patchwork::wrap_plots(page, ncol = 1))
+    # 2. Print individual hull plots if show_all_hulls is TRUE
+    if (show_all_hulls) {
+      for (plot_set in all_plots) {
+        individual_hull_pages <- split(plot_set$individual_hull_plots, ceiling(seq_along(plot_set$individual_hull_plots) / 2))
+        for (page in individual_hull_pages) {
+          print(patchwork::wrap_plots(page, ncol = 1))
+        }
       }
     }
 
-    # 3. Print the single combined boxplot for all columns
+    # 3. Print the contour plots (2 per page) if show_all_contours is TRUE
+    if (show_all_contours) {
+      for (plot_set in all_plots) {
+        contour_pages <- split(plot_set$contour_plots, ceiling(seq_along(plot_set$contour_plots) / 2))
+        for (page in contour_pages) {
+          print(patchwork::wrap_plots(page, ncol = 1))
+        }
+      }
+    }
+
+    # 4. Print the single combined boxplot for all columns
     print(boxplot)
 
     # Close the PDF device
