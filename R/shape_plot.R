@@ -1,21 +1,22 @@
 #' Generate a Customizable Scatter Plot with Hulls and Contours
 #'
-#' The `shape_plot` function generates a scatter plot of specified columns with optional grouping. It supports various features such as convex hulls and contour plots. The function provides extensive customization options for axis labels, colors, shapes, and plot aesthetics.
+#' The `shape_plot` function generates a scatter plot of specified columns with optional grouping.
+#' It supports various features such as convex hulls and contour plots. The function provides extensive customization options for axis labels, colors, shapes, and plot aesthetics.
 #'
 #' @param data A data frame containing the data to be plotted.
-#' @param x_col A character string representing the name of the column to be plotted on the x-axis.
-#' @param y_col A character string representing the name of the column to be plotted on the y-axis.
-#' @param group_col (Optional) A character string representing the name of the grouping column for color and style customization.
-#' @param group_vals (Optional) A vector specifying the group values to display. Only these groups will appear in the plot.
-#' @param hull_fill A vector specifying the fill color(s) for convex hull(s). Default is "black".
+#' @param x_col A character string or bare column name representing the x-axis column. Use either `"column_name"` or `column_name`.
+#' @param y_col A character string or bare column name representing the y-axis column. Use either `"column_name"` or `column_name`.
+#' @param group_col (Optional) A character string or bare column name representing the grouping column for color and style customization. Use either `"column_name"` or `column_name`.
+#' @param group_vals (Optional) A vector specifying which group values to display. Only these groups will appear in the plot.
+#' @param hull_fill A vector specifying the fill color(s) for convex hull(s). Defaults to `point_color` if not specified.
 #' @param hull_color A vector specifying the border color(s) for convex hull(s). Default is "black".
 #' @param hull_linetype A character string representing the line type for convex hull(s). Default is "solid".
 #' @param hull_alpha A numeric value between 0 and 1 specifying the transparency for convex hull(s). Default is 0.1.
 #' @param title A character string specifying the title of the plot. Default is NULL.
 #' @param x_label A character string specifying the label for the x-axis. Defaults to the name of `x_col` if not provided.
 #' @param y_label A character string specifying the label for the y-axis. Defaults to the name of `y_col` if not provided.
-#' @param point_color A character string or vector specifying the color(s) of the points. Default is "black".
-#' @param point_fill A character string or vector specifying the fill color(s) of the points. Default is "white".
+#' @param point_color A character string or vector specifying the color(s) of the points. Default is generated based on `group_vals` if available.
+#' @param point_fill A character string or vector specifying the fill color(s) of the points. Defaults to `point_color` if not specified.
 #' @param point_shape An integer or vector specifying the shape(s) of the points. Default is 21 (circle).
 #' @param point_size A numeric value or vector specifying the size(s) of the points. Default is 2.
 #' @param title_size A numeric value specifying the font size for the plot title. Default is 24.
@@ -39,10 +40,21 @@
 #' @param plot_style A character string specifying the style of the plot. Options include "Haug", "inverted_Haug", and "publication". Default is "Haug".
 #' @param rotate_y_label A logical value indicating whether to rotate the y-axis label. Default is TRUE.
 #' @param show_label_text_fields A logical value indicating whether to display black borders around axis labels. Default is TRUE.
+#' @param export A logical value indicating whether to export the plot as a TIFF file. Default is FALSE.
+#' @param file_name A character string specifying the name of the file if `export = TRUE`. Default is "shape_plot_output".
+#' @param file_path An optional path for saving the exported file. If NULL, the file is saved in the working directory.
 #'
 #' @return A ggplot2 object representing the generated scatter plot.
 #'
 #' @examples
+#' # Example usage:
+#' test_data <- data.frame(
+#'   PC1 = rnorm(100),
+#'   PC2 = rnorm(100),
+#'   group = sample(c("A", "B", "C"), 100, replace = TRUE)
+#' )
+#' shape_plot(data = test_data, x_col = "PC1", y_col = "PC2", group_col = "group", show_hulls = TRUE)
+#'
 #' @export
 #' @import ggplot2
 #' @import dplyr
@@ -113,6 +125,24 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
 
   if (!all(group_vals %in% unique(data[[group_col]]))) {
     stop("Some values in 'group_vals' do not exist in the specified 'group_col'. Please check the group values.")
+  }
+
+  # Automatically assign colors if point_color or point_fill is not provided
+  if (is.null(group_vals) && !is.null(group_col)) {
+    group_vals <- unique(data[[group_col]])
+  }
+
+  if (is.null(point_color)) {
+    if (length(group_vals) > 0) {
+      # Generate distinct colors for each group
+      point_color <- scales::hue_pal()(length(group_vals))  # Generate colors for each group
+    } else {
+      point_color <- "black"  # Default to black if no groups are defined
+    }
+  }
+
+  if (is.null(point_fill)) {
+    point_fill <- point_color  # Default fill to the same as point_color
   }
 
   # Use column names as default labels if none are provided
@@ -221,6 +251,11 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
         group_val <- group_vals[i]
         group_data <- data %>% dplyr::filter(!!rlang::sym(group_col) == group_val)
 
+        # Check if the current group should have a hull drawn
+        if (!is.null(show_hull_for_groups) && !(group_val %in% show_hull_for_groups)) {
+          next  # Skip to the next iteration if this group should not have a hull
+        }
+
         if (nrow(group_data) >= 3) {  # Only calculate the hull if there are 3 or more points
           hull_indices <- grDevices::chull(group_data[[x_col]], group_data[[y_col]])
           hull_data <- group_data[hull_indices, ]
@@ -238,6 +273,7 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
       }
     }
   }
+
 
   # Add contours if enabled and group_col and group_vals are provided
   if (!is.null(group_col) && show_contours && !is.null(group_vals)) {
