@@ -1,3 +1,56 @@
+#' Generate a Panel of Hull, Contour, or Box Plots
+#'
+#' The `Haug_panel` function creates a customizable panel of plots based on specified columns
+#' from a data frame. Users can choose between "hull" plots, "contour" plots, or a combined
+#' "boxplot" across groups for two columns. Hull or contour plots can display a single group
+#' or all groups combined. The panel layout and plot style are adjustable for enhanced visualization.
+#'
+#' @param data A data frame containing the data to be plotted.
+#' @param x_col A character string representing the x-axis column name.
+#' @param y_col A character string representing the y-axis column name.
+#' @param group_col (Optional) A character string representing the grouping column.
+#' @param group_vals (Optional) A vector specifying the groups to display. If NULL, all unique groups in `group_col` are used.
+#' @param colors (Optional) A vector of colors for each group. If NULL, colors are automatically generated.
+#' @param point_fill A character string or vector specifying the fill color(s) of the points. Default is NULL.
+#' @param point_shape An integer specifying the shape of the points. Default is 21 (circle).
+#' @param point_size A numeric value specifying the size of the points. Default is 2.
+#' @param title_size A numeric value specifying the font size for the plot titles. Default is 24.
+#' @param label_size A numeric value specifying the font size for the axis labels. Default is 20.
+#' @param tick_size A numeric value specifying the font size for axis tick labels. Default is 15.
+#' @param tick_length A numeric value specifying the length of tick marks relative to plot size. Default is 0.005.
+#' @param axis_linewidth A numeric value specifying the width of the axis lines and ticks. Default is 1.
+#' @param hull_alpha A numeric value between 0 and 1 specifying the transparency for convex hulls. Default is 0.3.
+#' @param contour_linewidth A numeric value specifying the thickness of contour lines. Default is 1.
+#' @param panel_type A character string specifying the type of panel to create. Options are "hulls", "contours", or "boxplot". Default is "hulls".
+#' @param plot_style A character string specifying the style of the plot. Options are "Haug" and "inverted_Haug". Default is "Haug".
+#' @param ncol An integer specifying the number of columns in the panel layout. Default is 2.
+#' @param plot_width A numeric value specifying the width of each plot in inches for saving. Default is 10.
+#' @param plot_height A numeric value specifying the height of each plot in inches for saving. Default is 10.
+#' @param resolution A numeric value specifying the resolution of the output image in DPI. Default is 300.
+#' @param plot_spacing A numeric value specifying the spacing between plots to prevent cutting off axis labels. Default is 0.3.
+#' @param x_label_adjust_x A numeric value to adjust the x-axis label position horizontally. Default is 0.
+#' @param x_label_adjust_y A numeric value to adjust the x-axis label position vertically. Default is 0.
+#' @param y_label_adjust_x A numeric value to adjust the y-axis label position horizontally. Default is 0.
+#' @param y_label_adjust_y A numeric value to adjust the y-axis label position vertically. Default is 0.
+#' @param save_path (Optional) A character string specifying the file path to save the final panel plot. If NULL, the plot is not saved.
+#'
+#' @return A combined panel plot of hulls, contours, or boxplots.
+#'
+#' @examples
+#' # Example usage:
+#' data <- data.frame(
+#'   PC1 = rnorm(100),
+#'   PC2 = rnorm(100),
+#'   Group = sample(c("A", "B", "C"), 100, replace = TRUE)
+#' )
+#' Haug_panel(data = data, x_col = "PC1", y_col = "PC2", group_col = "Group", panel_type = "hulls", ncol = 2)
+#'
+#' @export
+#' @import ggplot2
+#' @import dplyr
+#' @importFrom patchwork wrap_plots
+#'
+
 Haug_panel <- function(data, x_col, y_col, group_col = NULL,
                        group_vals = NULL,  # Optional
                        colors = NULL,  # Set colors to NULL by default

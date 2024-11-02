@@ -2,26 +2,24 @@
 % Please edit documentation in R/Haug_overview.R
 \name{Haug_overview}
 \alias{Haug_overview}
-\title{Generate an Overview Panel with Hulls, Heatmaps, Contours, and Boxplots}
+\title{Generate an Overview of Hull, Contour, and Box Plots}
 \usage{
 Haug_overview(
   data,
-  x_col,
-  y_col,
+  cols = c("col1", "col2"),
   group_col = NULL,
   group_vals = NULL,
   colors = NULL,
-  point_fill = "white",
-  point_shape = 21,
-  point_size = 2,
+  point_color = NULL,
+  point_fill = NULL,
+  point_shape = NULL,
+  point_size = NULL,
   title_size = 24,
   label_size = 20,
   tick_size = 15,
-  tick_length = 0.005,
+  tick_length = NULL,
   axis_linewidth = 1,
   hull_alpha = 0.3,
-  heatmap_alpha = 1.3,
-  heatmap_bins = 100,
   contour_linewidth = 1,
   plot_style = "Haug",
   ncol = 2,
@@ -29,77 +27,90 @@ Haug_overview(
   plot_height = 10,
   resolution = 300,
   plot_spacing = 0.3,
-  save_path = NULL
+  save_path = NULL,
+  export_pdf = FALSE,
+  pdf_file_name = "overview_plots.pdf",
+  show_all_hulls = FALSE,
+  show_all_contours = FALSE,
+  show_table = FALSE
 )
 }
 \arguments{
 \item{data}{A data frame containing the data to be plotted.}
 
-\item{x_col}{A character string representing the name of the column to be plotted on the x-axis.}
+\item{cols}{A character vector specifying pairs of column names to plot. Must contain 2, 4, or 6 column names.}
 
-\item{y_col}{A character string representing the name of the column to be plotted on the y-axis.}
+\item{group_col}{(Optional) A character string or bare column name representing the grouping column for color and style customization.}
 
-\item{group_col}{(Optional) A character string representing the name of the grouping column.}
+\item{group_vals}{(Optional) A vector specifying the group values to display. If NULL, all unique values in \code{group_col} are used.}
 
-\item{group_vals}{(Optional) A vector specifying the group values to be plotted. Must correspond to values in \code{group_col}.}
+\item{colors}{A vector specifying the colors for each group. If NULL, colors are automatically generated.}
 
-\item{colors}{A vector of colors for each group. If NULL, default colors will be generated using RColorBrewer's Set1 palette.}
+\item{point_color}{A character string or vector specifying the color(s) of the points. Default is \code{colors}.}
 
-\item{point_fill}{The fill color for scatter plot points. Default is "white".}
+\item{point_fill}{A character string or vector specifying the fill color(s) of the points. Default is \code{colors}.}
 
-\item{point_shape}{The shape of the scatter points. Default is 21 (circle).}
+\item{point_shape}{An integer or vector specifying the shape(s) of the points. Default is 21 (circle).}
 
-\item{point_size}{The size of the scatter points. Default is 2.}
+\item{point_size}{A numeric value or vector specifying the size(s) of the points. Default is 2.}
 
-\item{title_size}{A numeric value specifying the font size for plot titles. Default is 24.}
+\item{title_size}{A numeric value specifying the font size for the plot titles. Default is 24.}
 
-\item{label_size}{A numeric value specifying the font size for axis labels. Default is 20.}
+\item{label_size}{A numeric value specifying the font size for the axis labels. Default is 20.}
 
 \item{tick_size}{A numeric value specifying the font size for axis tick labels. Default is 15.}
 
-\item{tick_length}{A numeric value specifying the proportional length of axis ticks relative to plot size. Default is 0.005.}
+\item{tick_length}{A numeric value specifying the proportional length of tick marks relative to plot size. Default is 0.005.}
 
-\item{axis_linewidth}{A numeric value specifying the width of the axes and tick marks. Default is 1.}
+\item{axis_linewidth}{A numeric value specifying the width of the axis lines and ticks. Default is 1.}
 
-\item{hull_alpha}{A numeric value specifying the transparency level for convex hulls. Default is 0.3.}
-
-\item{heatmap_alpha}{A numeric value specifying the transparency level for heatmaps. Default is 1.3.}
-
-\item{heatmap_bins}{A numeric value specifying the number of bins for heatmap density estimation. Default is 100.}
+\item{hull_alpha}{A numeric value between 0 and 1 specifying the transparency for convex hulls in the hull plots. Default is 0.3.}
 
 \item{contour_linewidth}{A numeric value specifying the thickness of contour lines. Default is 1.}
 
-\item{plot_style}{A character string specifying the plot style. Options are "Haug" (default) and "inverted_Haug".}
+\item{plot_style}{A character string specifying the style of the plot. Options include "Haug", "inverted_Haug", and "publication". Default is "Haug".}
 
-\item{ncol}{A numeric value specifying the number of columns in the panel layout. Default is 2.}
+\item{ncol}{(unused) An integer specifying the number of columns in the PDF layout. Default is 2.}
 
-\item{plot_width}{A numeric value specifying the width (in inches) of each individual plot in the panel. Default is 10.}
+\item{plot_width}{A numeric value specifying the width of each plot in inches for PDF export. Default is 10.}
 
-\item{plot_height}{A numeric value specifying the height (in inches) of each individual plot in the panel. Default is 10.}
+\item{plot_height}{A numeric value specifying the height of each plot in inches for PDF export. Default is 10.}
 
-\item{resolution}{A numeric value specifying the resolution (in DPI) for the output plot. Default is 300.}
+\item{resolution}{A numeric value specifying the resolution of the exported PDF file in DPI. Default is 300.}
 
-\item{plot_spacing}{A numeric value specifying the spacing between plots in the panel to prevent label cutoffs. Default is 0.3.}
+\item{plot_spacing}{A numeric value specifying the spacing between plots in the PDF. Default is 0.3.}
 
-\item{save_path}{(Optional) A character string specifying the file path to save the output panel plot. If NULL, the plot is not saved.}
+\item{save_path}{An optional file path to save the plots. If NULL, the plots are saved in the current working directory.}
+
+\item{export_pdf}{A logical value indicating whether to export the overview as a multi-page PDF. Default is FALSE.}
+
+\item{pdf_file_name}{A character string specifying the name of the exported PDF file if \code{export_pdf = TRUE}. Default is "overview_plots.pdf".}
+
+\item{show_all_hulls}{A logical value indicating whether to show all group hulls. Default is FALSE.}
+
+\item{show_all_contours}{A logical value indicating whether to show all group contours. Default is FALSE.}
+
+\item{show_table}{A logical value indicating whether to display tables of hull specimen information. Default is FALSE.}
 }
 \value{
-A \code{patchwork} object representing the combined overview panel of plots.
+A list containing:
+\describe{
+\item{hull_and_contours}{A list of hull and contour plots for each specified column pair.}
+\item{boxplot}{A combined boxplot comparing groups across all specified columns.}
+}
 }
 \description{
-This function generates a comprehensive overview panel that combines multiple types of plots such as hulls, heatmaps,
-contours, and boxplots. It allows users to customize plot styles, colors, and groupings, and produces an overview of
-different data visualizations based on the given dataset.
+The \code{Haug_overview} function creates a multi-panel overview of scatter plots, contour plots, and a boxplot for specified column pairs in the data. Hull plots and contour plots are generated for each pair of columns, with contour plots available for each group specified. If \code{group_vals} is not provided, contours will be generated for every unique group in the \code{group_col}. Additionally, a combined boxplot is created to compare groups across all selected columns.
 }
 \examples{
-# Example data
-df <- data.frame(
-  PC1 = rnorm(100),
-  PC2 = rnorm(100),
+# Example usage:
+test_data <- data.frame(
+  col1 = rnorm(100),
+  col2 = rnorm(100),
+  col3 = rnorm(100),
+  col4 = rnorm(100),
   group = sample(c("A", "B", "C"), 100, replace = TRUE)
 )
-
-# Create an overview panel with hulls, heatmaps, contours, and boxplots
-Haug_overview(df, x_col = "PC1", y_col = "PC2", group_col = "group", group_vals = c("A", "B", "C"))
+Haug_overview(data = test_data, cols = c("col1", "col2", "col3", "col4"), group_col = "group", export_pdf = TRUE)
 
 }
