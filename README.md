@@ -1,4 +1,5 @@
-HaugShape
+# HaugShape
+
 HaugShape is an R package designed for advanced shape analyses and morphometric visualizations, especially useful in morphometrics research. The package provides customizable plotting functions for visualizing shapes, convex hulls, and contours, enabling the creation of publication-ready figures.
 
 Features
@@ -7,18 +8,16 @@ Group Analysis: Easily visualize and compare shapes across multiple groups with 
 Customizable Styles: Choose from styles like Haug, inverted_Haug, and publication for tailored visual output.
 Export Options: Easily export plots as high-resolution TIFFs or multi-page PDFs for comprehensive reporting.
 
-Installation
+# Installation
 To install HaugShape from GitHub:
-
-
-# Install the remotes package if you haven't already
+# Install the devtools package if you haven't already
 install.packages("devtools")
 
 # Install HaugShape from GitHub
 devtools::install_github("TestoKlaus/HaugShape")
 
 
-Usage
+# Usage
 library(HaugShape)
 
 # Basic scatterplot with convex hulls for specified groups
@@ -32,12 +31,12 @@ data <- data.frame(
 shape_plot(data, x_col = "PC1", y_col = "PC2", group_col = "group", show_hulls = TRUE)
 
 
-Main Functions
+# Main Functions
 shape_plot(): Create scatterplots with convex hulls and contours, with extensive customization for colors, labels, and plot aesthetics.
 Haug_panel(): Display panels of hulls or contours for multiple groups in one overview.
 Haug_overview(): Generate multi-page PDF overviews for hulls, contours, and combined group boxplots.
 shape_plot_momocs(): Plot PCA results with shapes at convex hull points for morphometric analysis with Momocs.
 
 
-Contributing
+# Contributing
 Feedback and contributions are welcome! Feel free to open issues or submit pull requests on GitHub.
