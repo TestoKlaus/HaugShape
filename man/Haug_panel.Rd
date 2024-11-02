@@ -2,7 +2,7 @@
 % Please edit documentation in R/Haug_panel.R
 \name{Haug_panel}
 \alias{Haug_panel}
-\title{Create a Customizable Panel of Plots (Hulls, Heatmaps, Contours, or Boxplots)}
+\title{Generate a Panel of Hull, Contour, or Box Plots}
 \usage{
 Haug_panel(
   data,
@@ -11,7 +11,7 @@ Haug_panel(
   group_col = NULL,
   group_vals = NULL,
   colors = NULL,
-  point_fill = "darkgrey",
+  point_fill = NULL,
   point_shape = 21,
   point_size = 2,
   title_size = 24,
@@ -20,8 +20,6 @@ Haug_panel(
   tick_length = 0.005,
   axis_linewidth = 1,
   hull_alpha = 0.3,
-  heatmap_alpha = 1.3,
-  heatmap_bins = 100,
   contour_linewidth = 1,
   panel_type = "hulls",
   plot_style = "Haug",
@@ -38,88 +36,78 @@ Haug_panel(
 )
 }
 \arguments{
-\item{data}{A data frame containing the variables to plot.}
+\item{data}{A data frame containing the data to be plotted.}
 
-\item{x_col}{A character string representing the name of the column to be plotted on the x-axis.}
+\item{x_col}{A character string representing the x-axis column name.}
 
-\item{y_col}{A character string representing the name of the column to be plotted on the y-axis.}
+\item{y_col}{A character string representing the y-axis column name.}
 
-\item{group_col}{(Optional) A character string representing the name of the grouping column.}
+\item{group_col}{(Optional) A character string representing the grouping column.}
 
-\item{group_vals}{(Optional) A vector specifying the group values to be plotted. Must correspond to values in \code{group_col}.}
+\item{group_vals}{(Optional) A vector specifying the groups to display. If NULL, all unique groups in \code{group_col} are used.}
 
-\item{colors}{A vector of colors for each group. If NULL, the function automatically generates distinct colors.}
+\item{colors}{(Optional) A vector of colors for each group. If NULL, colors are automatically generated.}
 
-\item{point_fill}{The fill color for scatter plot points. Default is "darkgrey".}
+\item{point_fill}{A character string or vector specifying the fill color(s) of the points. Default is NULL.}
 
-\item{point_shape}{The shape of the scatter points. Default is 21 (circle).}
+\item{point_shape}{An integer specifying the shape of the points. Default is 21 (circle).}
 
-\item{point_size}{The size of the scatter points. Default is 2.}
+\item{point_size}{A numeric value specifying the size of the points. Default is 2.}
 
-\item{title_size}{A numeric value specifying the font size for plot titles. Default is 24.}
+\item{title_size}{A numeric value specifying the font size for the plot titles. Default is 24.}
 
-\item{label_size}{A numeric value specifying the font size for axis labels. Default is 20.}
+\item{label_size}{A numeric value specifying the font size for the axis labels. Default is 20.}
 
 \item{tick_size}{A numeric value specifying the font size for axis tick labels. Default is 15.}
 
-\item{tick_length}{A numeric value specifying the proportional length of axis ticks relative to plot size. Default is 0.005.}
+\item{tick_length}{A numeric value specifying the length of tick marks relative to plot size. Default is 0.005.}
 
-\item{axis_linewidth}{A numeric value specifying the width of the axes and tick marks. Default is 1.}
+\item{axis_linewidth}{A numeric value specifying the width of the axis lines and ticks. Default is 1.}
 
-\item{hull_alpha}{A numeric value specifying the transparency level for convex hulls. Default is 0.3.}
-
-\item{heatmap_alpha}{A numeric value specifying the transparency level for heatmaps. Default is 1.3.}
-
-\item{heatmap_bins}{A numeric value specifying the number of bins for heatmap density estimation. Default is 100.}
+\item{hull_alpha}{A numeric value between 0 and 1 specifying the transparency for convex hulls. Default is 0.3.}
 
 \item{contour_linewidth}{A numeric value specifying the thickness of contour lines. Default is 1.}
 
-\item{panel_type}{A character string specifying the type of panel to create. Options are "hulls", "heatmaps", "contours", or "boxplot". Default is "hulls".}
+\item{panel_type}{A character string specifying the type of panel to create. Options are "hulls", "contours", or "boxplot". Default is "hulls".}
 
-\item{plot_style}{A character string specifying the plot style. Options are "Haug" (default) and "inverted_Haug".}
+\item{plot_style}{A character string specifying the style of the plot. Options are "Haug" and "inverted_Haug". Default is "Haug".}
 
-\item{ncol}{A numeric value specifying the number of columns in the panel layout. Default is 2.}
+\item{ncol}{An integer specifying the number of columns in the panel layout. Default is 2.}
 
-\item{plot_width}{A numeric value specifying the width (in inches) of each individual plot in the panel. Default is 10.}
+\item{plot_width}{A numeric value specifying the width of each plot in inches for saving. Default is 10.}
 
-\item{plot_height}{A numeric value specifying the height (in inches) of each individual plot in the panel. Default is 10.}
+\item{plot_height}{A numeric value specifying the height of each plot in inches for saving. Default is 10.}
 
-\item{resolution}{A numeric value specifying the resolution (in DPI) for the output plot. Default is 300.}
+\item{resolution}{A numeric value specifying the resolution of the output image in DPI. Default is 300.}
 
-\item{plot_spacing}{A numeric value specifying the spacing between plots in the panel to prevent label cutoffs. Default is 0.3.}
+\item{plot_spacing}{A numeric value specifying the spacing between plots to prevent cutting off axis labels. Default is 0.3.}
 
-\item{x_label_adjust_x}{A numeric value for horizontal adjustment of the x-axis label. Default is 0.}
+\item{x_label_adjust_x}{A numeric value to adjust the x-axis label position horizontally. Default is 0.}
 
-\item{x_label_adjust_y}{A numeric value for vertical adjustment of the x-axis label. Default is 0.}
+\item{x_label_adjust_y}{A numeric value to adjust the x-axis label position vertically. Default is 0.}
 
-\item{y_label_adjust_x}{A numeric value for horizontal adjustment of the y-axis label. Default is 0.}
+\item{y_label_adjust_x}{A numeric value to adjust the y-axis label position horizontally. Default is 0.}
 
-\item{y_label_adjust_y}{A numeric value for vertical adjustment of the y-axis label. Default is 0.}
+\item{y_label_adjust_y}{A numeric value to adjust the y-axis label position vertically. Default is 0.}
 
-\item{save_path}{(Optional) A character string specifying the file path to save the output panel plot. If NULL, the plot is not saved.}
+\item{save_path}{(Optional) A character string specifying the file path to save the final panel plot. If NULL, the plot is not saved.}
 }
 \value{
-A \code{patchwork} object representing the combined panel of plots.
+A combined panel plot of hulls, contours, or boxplots.
 }
 \description{
-This function generates a panel of plots based on the specified type. It can create panels with convex hulls, heatmaps, contours,
-or boxplots. Each plot is customizable with options for group-specific aesthetics, plot style, and layout.
+The \code{Haug_panel} function creates a customizable panel of plots based on specified columns
+from a data frame. Users can choose between "hull" plots, "contour" plots, or a combined
+"boxplot" across groups for two columns. Hull or contour plots can display a single group
+or all groups combined. The panel layout and plot style are adjustable for enhanced visualization.
 }
 \examples{
-# Example data
-df <- data.frame(
+# Example usage:
+data <- data.frame(
   PC1 = rnorm(100),
   PC2 = rnorm(100),
-  group = sample(c("A", "B", "C"), 100, replace = TRUE)
+  Group = sample(c("A", "B", "C"), 100, replace = TRUE)
 )
-
-# Create a panel of hull plots
-Haug_panel(df, x_col = "PC1", y_col = "PC2", group_col = "group", group_vals = c("A", "B", "C"), panel_type = "hulls")
-
-# Create a panel of heatmap plots for each group
-Haug_panel(df, x_col = "PC1", y_col = "PC2", group_col = "group", group_vals = c("A", "B", "C"), panel_type = "heatmaps")
-
-# Create a panel of boxplots for two PCs
-Haug_panel(df, x_col = "PC1", y_col = "PC2", group_col = "group", group_vals = c("A", "B"), panel_type = "boxplot")
+Haug_panel(data = data, x_col = "PC1", y_col = "PC2", group_col = "Group", panel_type = "hulls", ncol = 2)
 
 }

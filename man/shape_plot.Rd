@@ -2,7 +2,7 @@
 % Please edit documentation in R/shape_plot.R
 \name{shape_plot}
 \alias{shape_plot}
-\title{Generate a Customizable Scatter Plot with Hulls, Heatmaps, and Contours}
+\title{Generate a Customizable Scatter Plot with Hulls and Contours}
 \usage{
 shape_plot(
   data,
@@ -10,15 +10,15 @@ shape_plot(
   y_col,
   group_col = NULL,
   group_vals = NULL,
-  hull_fill = "black",
+  hull_fill = NULL,
   hull_color = "black",
   hull_linetype = "solid",
   hull_alpha = 0.1,
   title = NULL,
   x_label = NULL,
   y_label = NULL,
-  point_color = "black",
-  point_fill = "white",
+  point_color = NULL,
+  point_fill = NULL,
   point_shape = 21,
   point_size = 2,
   title_size = 24,
@@ -34,33 +34,31 @@ shape_plot(
   y_label_size = 5,
   show_hulls = FALSE,
   show_hull_for_groups = NULL,
-  show_heatmaps = FALSE,
-  heatmap_colors = list(c("white", "red"), c("white", "blue"), c("white", "green")),
-  heatmap_alpha = 1,
-  heatmap_bins = 30,
-  show_heatmap_for_groups = NULL,
   show_contours = FALSE,
   contour_colors = "black",
   show_contours_for_groups = NULL,
   contour_linewidth = 0.5,
   axis_linewidth = 1,
   plot_style = "Haug",
-  rotate_y_label = TRUE,
-  show_label_text_fields = TRUE
+  rotate_y_label = FALSE,
+  show_label_text_fields = TRUE,
+  export = FALSE,
+  file_name = "shape_plot_output",
+  file_path = NULL
 )
 }
 \arguments{
 \item{data}{A data frame containing the data to be plotted.}
 
-\item{x_col}{A character string representing the name of the column to be plotted on the x-axis.}
+\item{x_col}{A character string or bare column name representing the x-axis column. Use either \code{"column_name"} or \code{column_name}.}
 
-\item{y_col}{A character string representing the name of the column to be plotted on the y-axis.}
+\item{y_col}{A character string or bare column name representing the y-axis column. Use either \code{"column_name"} or \code{column_name}.}
 
-\item{group_col}{(Optional) A character string representing the name of the grouping column for color and style customization.}
+\item{group_col}{(Optional) A character string or bare column name representing the grouping column for color and style customization. Use either \code{"column_name"} or \code{column_name}.}
 
-\item{group_vals}{(Optional) A vector specifying the group values to display. Only these groups will appear in the plot.}
+\item{group_vals}{(Optional) A vector specifying which group values to display. Only these groups will appear in the plot.}
 
-\item{hull_fill}{A vector specifying the fill color(s) for convex hull(s). Default is "black".}
+\item{hull_fill}{A vector specifying the fill color(s) for convex hull(s). Defaults to \code{point_color} if not specified.}
 
 \item{hull_color}{A vector specifying the border color(s) for convex hull(s). Default is "black".}
 
@@ -74,9 +72,9 @@ shape_plot(
 
 \item{y_label}{A character string specifying the label for the y-axis. Defaults to the name of \code{y_col} if not provided.}
 
-\item{point_color}{A character string or vector specifying the color(s) of the points. Default is "black".}
+\item{point_color}{A character string or vector specifying the color(s) of the points. Default is generated based on \code{group_vals} if available.}
 
-\item{point_fill}{A character string or vector specifying the fill color(s) of the points. Default is "white".}
+\item{point_fill}{A character string or vector specifying the fill color(s) of the points. Defaults to \code{point_color} if not specified.}
 
 \item{point_shape}{An integer or vector specifying the shape(s) of the points. Default is 21 (circle).}
 
@@ -108,17 +106,7 @@ shape_plot(
 
 \item{show_hull_for_groups}{(Optional) A vector specifying which groups to display convex hulls for.}
 
-\item{show_heatmaps}{A logical value indicating whether to display heatmaps. Default is FALSE.}
-
-\item{heatmap_colors}{A list of color gradients for the heatmaps, with each list element representing the gradient for a group.}
-
-\item{heatmap_alpha}{A numeric value between 0 and 1 specifying the transparency of heatmaps. Default is 1.}
-
-\item{heatmap_bins}{A numeric value specifying the number of bins for the heatmap density estimation. Default is 30.}
-
-\item{show_heatmap_for_groups}{(Optional) A vector specifying which groups to display heatmaps for.}
-
-\item{show_contours}{A logical value indicating whether to display contour lines over heatmaps. Default is FALSE.}
+\item{show_contours}{A logical value indicating whether to display contour lines. Default is FALSE.}
 
 \item{contour_colors}{A vector specifying the color(s) of contour lines. Default is "black".}
 
@@ -133,32 +121,27 @@ shape_plot(
 \item{rotate_y_label}{A logical value indicating whether to rotate the y-axis label. Default is TRUE.}
 
 \item{show_label_text_fields}{A logical value indicating whether to display black borders around axis labels. Default is TRUE.}
+
+\item{export}{A logical value indicating whether to export the plot as a TIFF file. Default is FALSE.}
+
+\item{file_name}{A character string specifying the name of the file if \code{export = TRUE}. Default is "shape_plot_output".}
+
+\item{file_path}{An optional path for saving the exported file. If NULL, the file is saved in the working directory.}
 }
 \value{
 A ggplot2 object representing the generated scatter plot.
 }
 \description{
-The \code{shape_plot} function generates a scatter plot of specified columns with optional grouping. It supports various features such as convex hulls, heatmaps, and contour plots. The function provides extensive customization options for axis labels, colors, shapes, and plot aesthetics.
+The \code{shape_plot} function generates a scatter plot of specified columns with optional grouping.
+It supports various features such as convex hulls and contour plots. The function provides extensive customization options for axis labels, colors, shapes, and plot aesthetics.
 }
 \examples{
-# Create a data frame
-df <- data.frame(
-PC1 = rnorm(100),
-PC2 = rnorm(100),
-group = sample(c("A", "B", "C"), 100, replace = TRUE)
+# Example usage:
+test_data <- data.frame(
+  PC1 = rnorm(100),
+  PC2 = rnorm(100),
+  group = sample(c("A", "B", "C"), 100, replace = TRUE)
+)
+shape_plot(data = test_data, x_col = "PC1", y_col = "PC2", group_col = "group", show_hulls = TRUE)
 
-# Scatterplot with hulls around groups A and C
-shape_plot(data = df, x_col = "PC1", y_col = "PC2", group_col = "group",
-          x_label = "PC1 (...)", x_label_adjust_x =-0.1, x_label_adjust_y =-0.1,
-          y_label = "PC2 (...)", y_label_adjust_y = 0.4, rotate_y_label = FALSE,
-          show_label_text_fields = FALSE,
-          axis_linewidth = 1.5,
-          title = "",
-          group_vals = c("A","B","C"),
-          point_fill = c("red","blue","green"),
-          point_shape = c(21,8,21),
-          point_color = c("red","blue","green"),
-          show_hulls = TRUE,
-          hull_fill = c("red","blue","green"),
-          show_hull_for_groups = c("A","C"))
 }
