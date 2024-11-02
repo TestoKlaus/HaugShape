@@ -2,9 +2,16 @@
 % Please edit documentation in R/get_hull_specimen_table.R
 \name{get_hull_specimen_table}
 \alias{get_hull_specimen_table}
-\title{Get Specimen Data Tables for Convex Hulls of Multiple Column Pairs}
+\title{Get Combined Specimen Data Table for Convex Hulls of Multiple Column Pairs}
 \usage{
-get_hull_specimen_table(data, x_cols, y_cols, group_col, group_vals = NULL)
+get_hull_specimen_table(
+  data,
+  x_cols,
+  y_cols,
+  group_col,
+  group_vals = NULL,
+  max_rows_per_page = 50
+)
 }
 \arguments{
 \item{data}{A data frame containing the data to analyze.}
@@ -17,17 +24,15 @@ get_hull_specimen_table(data, x_cols, y_cols, group_col, group_vals = NULL)
 
 \item{group_vals}{(Optional) A vector of specific values within the group_col to filter by for hull calculation.
 If NULL, tables are generated for all groups in \code{group_col}.}
+
+\item{max_rows_per_page}{Maximum number of rows per page before splitting. Default is 50.}
 }
 \value{
-A list of ggplot objects, each showing a table with the first column, group_col, x_col, and y_col
-for specimens on the convex hull, all points in the group if fewer than three points,
-or an empty table if no valid points are available.
+A list of ggplot tables, each displaying a portion of the combined data,
+with titles as bold rows and automatic pagination if necessary.
 }
 \description{
 This function identifies the specimens from a data frame used to create convex hulls
-based on multiple specified column pairs for specific groups.
-It returns a list of ggplot tables, each containing the rows forming the hull with selected columns:
-the first column, group_col, x_col, and y_col for each group and column pair, with a title added.
-If a group has fewer than three points or no valid points, it returns a table of all points in the group
-or an empty table.
+based on multiple specified column pairs for specific groups and combines them into a single table.
+Each group and column pair has a title row with the format "Specimens for hull of group: ... for X vs Y".
 }

@@ -133,8 +133,8 @@ Haug_overview <- function(data,
     point_size <- 2  # Default point size
   }
 
-  # Empty list for tables
-  all_tables <- list()
+  # Initialize an empty list for combined tables
+  combined_tables <- list()
 
 
   generate_plots_for_column_pair <- function(data, col1, col2, group_col, group_vals, colors, point_color, point_fill,
@@ -178,26 +178,17 @@ Haug_overview <- function(data,
                             x_label_adjust_y = x_label_adjust_y)
 
     # Create individual hull plots if show_all_hulls is TRUE
+    individual_hull_plots <- NULL
     if (show_all_hulls && !is.null(group_vals)) {
       individual_hull_plots <- lapply(group_vals, function(group) {
-        count <- sample_counts %>% dplyr::filter(group == !!group) %>% dplyr::pull(count)
-        plot_title <- paste("Hull for Group", group, "(", col1, "vs", col2, ", n =", count, ")")
-        hull_plot <- shape_plot(data, x_col = col1, y_col = col2, group_col = group_col, group_vals = group_vals,
-                                point_color = point_color, point_fill = point_fill, point_shape = point_shape, point_size = point_size,
-                                title = plot_title, title_size = title_size, label_size = label_size,
-                                tick_size = tick_size, tick_length = tick_length, axis_linewidth = axis_linewidth,
-                                show_hulls = TRUE, hull_fill = colors, hull_alpha = hull_alpha, plot_style = plot_style,
-                                show_hull_for_groups = group, x_label_adjust_y = x_label_adjust_y)
-
-        if (show_table) {
-          table_plot <- get_hull_specimen_table(data, col1, col2, group_col, group)
-          all_tables[[group]] <- table_plot  # Store each table by group name
-        }
-
-        return(hull_plot)  # Return only the plot here
+        plot_title <- paste("Hull for Group", group, "(", col1, "vs", col2, ")")
+        shape_plot(data, x_col = col1, y_col = col2, group_col = group_col, group_vals = group_vals,
+                   point_color = point_color, point_fill = point_fill, point_shape = point_shape, point_size = point_size,
+                   title = plot_title, title_size = title_size, label_size = label_size,
+                   tick_size = tick_size, tick_length = tick_length, axis_linewidth = axis_linewidth,
+                   show_hulls = TRUE, hull_fill = colors, hull_alpha = hull_alpha, plot_style = plot_style,
+                   show_hull_for_groups = group, x_label_adjust_y = x_label_adjust_y)
       })
-    } else {
-      individual_hull_plots <- NULL
     }
 
     # Create contour plots for each group for the column pair if show_all_contours is TRUE
@@ -233,6 +224,16 @@ Haug_overview <- function(data,
     ggplot2::scale_fill_manual(values = colors) +
     ggplot2::theme(plot.title = ggplot2::element_text(size = title_size))
 
+  # **Generate Separate Tables for Each Column Pair** if show_table is TRUE
+  if (show_table) {
+    for (i in seq(1, length(cols), by = 2)) {
+      col1 <- cols[i]
+      col2 <- cols[i + 1]
+      table <- get_hull_specimen_table(data, x_cols = col1, y_cols = col2, group_col = group_col, group_vals = group_vals)
+      combined_tables[[paste(col1, col2, sep = "_vs_")]] <- table
+    }
+  }
+
   # Initialize an empty list to store all generated plots
   all_plots <- list()
 
@@ -244,24 +245,17 @@ Haug_overview <- function(data,
     # Generate plots for the column pair
     plots <- generate_plots_for_column_pair(data, col1, col2, group_col, group_vals, colors, point_color, point_fill,
                                             point_shape, point_size, title_size, label_size, tick_size, tick_length, axis_linewidth,
-                                            hull_alpha, contour_linewidth, plot_style, show_all_hulls, show_all_contours, show_table)
+                                            hull_alpha, contour_linewidth, plot_style, show_all_hulls, show_all_contours)
     all_plots <- c(all_plots, list(plots))
-
-    if (show_table) {
-      # Get the tables for this column pair
-      tables_for_pair <- get_hull_specimen_table(data, x_cols = col1, y_cols = col2, group_col = group_col, group_vals = group_vals)
-      all_tables <- c(all_tables, tables_for_pair)
-    }
   }
 
   # Save the overview panel as a PDF if export_pdf is TRUE
   if (export_pdf) {
-    # Open a PDF device to write the plots
     pdf(file = pdf_file_name, width = plot_width, height = plot_height)
 
     # 1. Print the hull plots (2 or 3 per page)
     hull_plots <- lapply(all_plots, function(plot_set) plot_set$hull_plot)
-    hull_pages <- split(hull_plots, ceiling(seq_along(hull_plots) / 2))  # Split into pages of 2 (or 3 for 6 cols)
+    hull_pages <- split(hull_plots, ceiling(seq_along(hull_plots) / 2))
     for (page in hull_pages) {
       print(patchwork::wrap_plots(page, ncol = 1))
     }
@@ -289,24 +283,16 @@ Haug_overview <- function(data,
     # 4. Print the single combined boxplot for all columns
     print(boxplot)
 
-    # Print all tables in chunks of three per page after the boxplot if show_table is TRUE
-    if (show_table && length(all_tables) > 0) {
-      # Split tables into chunks (e.g., three per page)
-      table_chunks <- split(all_tables, ceiling(seq_along(all_tables) / 3))
-
-      # Print each chunk of tables on a separate page
-      for (chunk in table_chunks) {
-        tables_combined <- patchwork::wrap_plots(chunk, ncol = 1, nrow = 3)
-
-        # Print the combined tables on the page
-        print(tables_combined)
+    # 5. **Print Each Table for Each Column Pair** if show_table is TRUE
+    if (show_table && length(combined_tables) > 0) {
+      for (table_name in names(combined_tables)) {
+        print(combined_tables[[table_name]])
       }
     }
 
-    # Close the PDF device
     dev.off()
     message(paste("Plots exported to", pdf_file_name))
   }
 
-  return(list(hull_and_contours = all_plots, boxplot = boxplot, tables = all_tables))
+  return(list(hull_and_contours = all_plots, boxplot = boxplot, tables = combined_tables))
 }
