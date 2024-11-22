@@ -33,7 +33,9 @@ shape_plot(
   x_label_size = 5,
   y_label_size = 5,
   show_hulls = FALSE,
+  show_shapes = FALSE,
   show_hull_for_groups = NULL,
+  show_shapes_for_groups = NULL,
   show_contours = FALSE,
   contour_colors = "black",
   show_contours_for_groups = NULL,
@@ -44,19 +46,24 @@ shape_plot(
   show_label_text_fields = TRUE,
   export = FALSE,
   file_name = "shape_plot_output",
-  file_path = NULL
+  file_path = NULL,
+  shape_col = "shape",
+  shape_size = 0.01,
+  shape_shift = 0.1,
+  shape_x_adjust = 0,
+  shape_y_adjust = 0
 )
 }
 \arguments{
-\item{data}{A data frame containing the data to be plotted.}
+\item{data}{(required) A data frame containing the data to be plotted.}
 
-\item{x_col}{A character string or bare column name representing the x-axis column. Use either \code{"column_name"} or \code{column_name}.}
+\item{x_col}{(required) A character string or bare column name representing the x-axis column. Use either \code{"column_name"} or \code{column_name}.}
 
-\item{y_col}{A character string or bare column name representing the y-axis column. Use either \code{"column_name"} or \code{column_name}.}
+\item{y_col}{(required) A character string or bare column name representing the y-axis column. Use either \code{"column_name"} or \code{column_name}.}
 
-\item{group_col}{(Optional) A character string or bare column name representing the grouping column for color and style customization. Use either \code{"column_name"} or \code{column_name}.}
+\item{group_col}{(required) A character string or bare column name representing the grouping column for color and style customization. Use either \code{"column_name"} or \code{column_name}.}
 
-\item{group_vals}{(Optional) A vector specifying which group values to display. Only these groups will appear in the plot.}
+\item{group_vals}{A vector specifying which group values to display. Only these groups will appear in the plot.}
 
 \item{hull_fill}{A vector specifying the fill color(s) for convex hull(s). Defaults to \code{point_color} if not specified.}
 
@@ -104,7 +111,11 @@ shape_plot(
 
 \item{show_hulls}{A logical value indicating whether to display convex hulls around the groups. Default is FALSE.}
 
+\item{show_shapes}{A logical value indicating whether to display shapes at convex hull points. Default is FALSE.}
+
 \item{show_hull_for_groups}{(Optional) A vector specifying which groups to display convex hulls for.}
+
+\item{show_shapes_for_groups}{(Optional) A vector specifying which groups to display shapes for.}
 
 \item{show_contours}{A logical value indicating whether to display contour lines. Default is FALSE.}
 
@@ -118,7 +129,7 @@ shape_plot(
 
 \item{plot_style}{A character string specifying the style of the plot. Options include "Haug", "inverted_Haug", and "publication". Default is "Haug".}
 
-\item{rotate_y_label}{A logical value indicating whether to rotate the y-axis label. Default is TRUE.}
+\item{rotate_y_label}{A logical value indicating whether to rotate the y-axis label. Default is FALSE.}
 
 \item{show_label_text_fields}{A logical value indicating whether to display black borders around axis labels. Default is TRUE.}
 
@@ -127,21 +138,32 @@ shape_plot(
 \item{file_name}{A character string specifying the name of the file if \code{export = TRUE}. Default is "shape_plot_output".}
 
 \item{file_path}{An optional path for saving the exported file. If NULL, the file is saved in the working directory.}
+
+\item{shape_col}{A character string specifying the column containing shape objects. Default is "shape".}
+
+\item{shape_size}{A numeric value specifying the scaling factor for shapes. Default is 0.01.}
+
+\item{shape_shift}{A numeric value specifying the distance to shift shapes away from the center of the plot. Default is 0.1.}
+
+\item{shape_x_adjust}{A numeric value specifying manual adjustment for the x-coordinate of the shapes. Default is 0.}
+
+\item{shape_y_adjust}{A numeric value specifying manual adjustment for the y-coordinate of the shapes. Default is 0.}
 }
 \value{
 A ggplot2 object representing the generated scatter plot.
 }
 \description{
 The \code{shape_plot} function generates a scatter plot of specified columns with optional grouping.
-It supports various features such as convex hulls and contour plots. The function provides extensive customization options for axis labels, colors, shapes, and plot aesthetics.
+It supports various features such as convex hulls, contour plots, and shapes at convex hull points.
+The function provides extensive customization options for axis labels, colors, shapes, and plot aesthetics.
 }
 \examples{
-# Example usage:
 test_data <- data.frame(
   PC1 = rnorm(100),
   PC2 = rnorm(100),
   group = sample(c("A", "B", "C"), 100, replace = TRUE)
 )
-shape_plot(data = test_data, x_col = "PC1", y_col = "PC2", group_col = "group", show_hulls = TRUE)
+shape_plot(data = test_data, x_col = "PC1", y_col = "PC2", group_col = "group",
+           show_hulls = TRUE)
 
 }
