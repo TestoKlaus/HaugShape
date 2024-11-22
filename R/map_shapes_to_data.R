@@ -18,7 +18,7 @@
 map_shapes_to_data <- function(data, id_col, shape_folder) {
   # Get full paths and file names
   jpg_files <- list.files(shape_folder, full.names = TRUE)
-  jpg_file_names <- gsub("\\.jpeg$", "", basename(jpg_files))  # Handle .jpeg files
+  jpg_file_names <- gsub("\\.(jpeg|jpg)$", "", basename(jpg_files), ignore.case = TRUE)  # Handle .jpeg and .jpg files
 
   # Match IDs to file names
   matches <- match(data[[id_col]], jpg_file_names)
