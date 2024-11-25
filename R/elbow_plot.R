@@ -30,8 +30,13 @@ elbow_plot <- function(data, x_col, y_col, max_k = 10, scale = TRUE,
     stop("Both `x_col` and `y_col` must exist in the data frame.")
   }
 
-  # Extract coordinates for clustering
+  # Extract and clean the data
   coordinates <- data[, c(x_col, y_col)]
+  coordinates <- coordinates[complete.cases(coordinates) & is.finite(rowSums(coordinates)), ]
+
+  if (nrow(coordinates) < 2) {
+    stop("Not enough valid data points for clustering after cleaning.")
+  }
 
   # Optionally scale the coordinates
   if (scale) {
@@ -62,7 +67,7 @@ elbow_plot <- function(data, x_col, y_col, max_k = 10, scale = TRUE,
     if (is.null(file_path)) {
       file_path <- paste0(file_name, ".tiff")
     }
-    ggsave(file_path, plot, device = "tiff", dpi = 600)
+    ggsave(file_path, plot, device = "tiff", dpi = 300)
   }
 
   return(plot)
