@@ -3,6 +3,7 @@
 export(Haug_overview)
 export(Haug_panel)
 export(cluster_plot)
+export(elbow_plot)
 export(get_hull_specimen_table)
 export(map_shapes_to_data)
 export(shape_plot)
