@@ -16,17 +16,35 @@
 #'
 #' @export
 map_shapes_to_data <- function(data, id_col, shape_folder) {
-  # Get full paths and file names
-  jpg_files <- list.files(shape_folder, full.names = TRUE)
-  jpg_file_names <- gsub("\\.(jpeg|jpg)$", "", basename(jpg_files), ignore.case = TRUE)  # Handle .jpeg and .jpg files
+  # Validate the folder
+  if (is.null(shape_folder) || !dir.exists(shape_folder)) {
+    stop("Shape folder does not exist or is not specified.")
+  }
+
+  # Get all JPEG files in the folder
+  jpg_files <- list.files(shape_folder, pattern = "\\.(jpeg|jpg)$", full.names = TRUE, ignore.case = TRUE)
+  if (length(jpg_files) == 0) {
+    warning("No .jpeg or .jpg files found in the specified folder.")
+    data$shape <- vector("list", nrow(data))  # Add an empty `shape` column
+    return(data)
+  }
+
+  # Extract file names without extensions
+  jpg_file_names <- gsub("\\.(jpeg|jpg)$", "", basename(jpg_files), ignore.case = TRUE)
 
   # Match IDs to file names
   matches <- match(data[[id_col]], jpg_file_names)
 
   # Map shapes into the data
-  data$shape <- lapply(matches, function(idx) {
+  data$shape <- lapply(seq_along(matches), function(i) {
+    idx <- matches[i]
     if (!is.na(idx)) {
-      import_jpg(jpg_files[idx]) %>% Out()  # Load and process the shape
+      tryCatch({
+        Momocs::Out(Momocs::import_jpg(jpg_files[idx]))  # Load and process the shape
+      }, error = function(e) {
+        message(sprintf("Error processing shape for row %d: %s", i, e$message))
+        NULL  # Return NULL on error
+      })
     } else {
       NULL  # No match
     }
@@ -34,4 +52,3 @@ map_shapes_to_data <- function(data, id_col, shape_folder) {
 
   return(data)
 }
-
