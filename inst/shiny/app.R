@@ -4,6 +4,7 @@ library(colourpicker)
 library(dplyr)
 library(shinyFiles)
 library(Momocs)
+library(ggplot2)
 
 ui <- fluidPage(
   titlePanel("HaugShape Shiny App"),
@@ -72,7 +73,7 @@ server <- function(input, output, session) {
 
     # Validate column selection
     if (length(input$overview_cols) %% 2 != 0) {
-      showNotification("Please select 2, 4, or 6 columns for the overview.", type = "error")
+      showNotification("Please select 2, 4, 6, ... columns for the overview.", type = "error")
       return(NULL)
     }
 
@@ -176,6 +177,18 @@ server <- function(input, output, session) {
       updateSelectizeInput(session, "overview_cols", choices = cols, selected = NULL)
       updateSelectInput(session, "overview_group_col", choices = c("", cols), selected = NULL)
       updateSelectInput(session, "overview_group_vals", choices = NULL, selected = NULL)
+    } else if (input$function_select == "Cluster Plot") {
+      updateSelectInput(session, "x_col", choices = cols, selected = cols[1])
+      updateSelectInput(session, "y_col", choices = cols, selected = cols[2])
+      updateSelectInput(session, "clustering_method",
+                        choices = c("kmeans", "hierarchical", "distance_threshold"),
+                        selected = "kmeans")
+      updateNumericInput(session, "distance_threshold", value = NULL)  # Reset distance_threshold
+      updateSliderInput(session, "num_clusters", value = 3)            # Reset num_clusters
+    } else if (input$function_select == "Elbow Plot") {
+      updateSelectInput(session, "x_col", choices = cols, selected = cols[1])
+      updateSelectInput(session, "y_col", choices = cols, selected = cols[2])
+      updateNumericInput(session, "max_k", value = 10)                 # Reset max_k
     }
   })
 
@@ -191,44 +204,78 @@ server <- function(input, output, session) {
 
   output$download_plot <- downloadHandler(
     filename = function() {
-      paste0("shape_plot_output", ".tiff")  # Default file name
+      paste0(input$function_select, "_output", ".tiff")  # File name based on the selected plot type
     },
     content = function(file) {
       tryCatch({
-        req(dataset(), input$x_col, input$y_col)
+        req(input$function_select, dataset(), input$x_col, input$y_col)
 
-        # Generate the plot
-        plot_to_save <- shape_plot(
-          data = dataset(),
-          x_col = input$x_col,
-          y_col = input$y_col,
-          group_col = input$group_col,
-          group_vals = if ("All" %in% input$group_vals) {
-            unique(dataset()[[input$group_col]])
-          } else {
-            input$group_vals
-          },
-          point_color = sapply(seq_along(input$group_vals), function(i) input[[paste0("point_color_", i)]]),
-          point_fill = sapply(seq_along(input$group_vals), function(i) input[[paste0("point_fill_", i)]]),
-          point_shape = as.numeric(sapply(seq_along(input$group_vals), function(i) input[[paste0("point_shape_", i)]])),
-          point_size = sapply(seq_along(input$group_vals), function(i) input[[paste0("point_size_", i)]]),
-          show_hulls = input$show_hulls,
-          hull_fill = sapply(seq_along(input$group_vals), function(i) input[[paste0("hull_fill_", i)]]),
-          hull_color = sapply(seq_along(input$group_vals), function(i) input[[paste0("hull_color_", i)]]),
-          hull_alpha = input$hull_alpha,
-          title = input$plot_title,
-          x_label = ifelse(input$x_axis_label == "", input$x_col, input$x_axis_label),
-          y_label = ifelse(input$y_axis_label == "", input$y_col, input$y_axis_label),
-          tick_size = input$tick_size,
-          axis_linewidth = input$axis_linewidth
+        # Generate the appropriate plot based on the selected function
+        plot_to_save <- switch(input$function_select,
+                               "Shape Plot" = shape_plot(
+                                 data = dataset(),
+                                 x_col = input$x_col,
+                                 y_col = input$y_col,
+                                 group_col = input$group_col,
+                                 group_vals = if ("All" %in% input$group_vals) {
+                                   unique(dataset()[[input$group_col]])
+                                 } else {
+                                   input$group_vals
+                                 },
+                                 point_color = sapply(seq_along(input$group_vals), function(i) input[[paste0("point_color_", i)]]),
+                                 point_fill = sapply(seq_along(input$group_vals), function(i) input[[paste0("point_fill_", i)]]),
+                                 point_shape = as.numeric(sapply(seq_along(input$group_vals), function(i) input[[paste0("point_shape_", i)]])),
+                                 point_size = sapply(seq_along(input$group_vals), function(i) input[[paste0("point_size_", i)]]),
+                                 show_hulls = input$show_hulls,
+                                 hull_fill = sapply(seq_along(input$group_vals), function(i) input[[paste0("hull_fill_", i)]]),
+                                 hull_color = sapply(seq_along(input$group_vals), function(i) input[[paste0("hull_color_", i)]]),
+                                 hull_alpha = input$hull_alpha,
+                                 show_shapes = input$show_shapes,
+                                 show_shapes_for_groups = if ("All" %in% input$show_shapes_for_groups) {
+                                   unique(dataset()[[input$group_col]])
+                                 } else {
+                                   input$show_shapes_for_groups
+                                 },
+                                 shape_size = input$shape_size,
+                                 shape_shift = input$shape_shift,
+                                 shape_x_adjust = input$shape_x_adjust,
+                                 shape_y_adjust = input$shape_y_adjust,
+                                 title = input$plot_title,
+                                 x_label = ifelse(input$x_axis_label == "", input$x_col, input$x_axis_label),
+                                 y_label = ifelse(input$y_axis_label == "", input$y_col, input$y_axis_label),
+                                 tick_size = input$tick_size,
+                                 axis_linewidth = input$axis_linewidth,
+                                 plot_style = input$plot_style
+                               ),
+                               "Cluster Plot" = cluster_plot(
+                                 data = dataset(),
+                                 x_col = input$x_col,
+                                 y_col = input$y_col,
+                                 method = input$clustering_method,
+                                 k = input$num_clusters,
+                                 distance_threshold = input$distance_threshold,
+                                 show_shapes = input$show_shapes,
+                                 shape_size = input$shape_size,
+                                 shape_x_adjust = input$shape_x_adjust,
+                                 shape_y_adjust = input$shape_y_adjust,
+                                 title = input$plot_title,
+                                 x_label = ifelse(input$x_axis_label == "", input$x_col, input$x_axis_label),
+                                 y_label = ifelse(input$y_axis_label == "", input$y_col, input$y_axis_label)
+                               ),
+                               "Elbow Plot" = elbow_plot(
+                                 data = dataset(),
+                                 x_col = input$x_col,
+                                 y_col = input$y_col,
+                                 max_k = input$max_k
+                               )
         )
 
-        # Save the plot to the specified file
+        # Save the plot as a TIFF file
         ggsave(
           filename = file,
           plot = plot_to_save,
           device = "tiff",
-          dpi = 600,
+          dpi = 300,
           width = 10,
           height = 7
         )
@@ -239,6 +286,7 @@ server <- function(input, output, session) {
       })
     }
   )
+
 
   observeEvent(input$group_col, {
     req(dataset(), input$group_col)
@@ -648,7 +696,20 @@ server <- function(input, output, session) {
              selectInput("y_col", "Select Y-Axis Column", choices = NULL),
              sliderInput("num_clusters", "Number of Clusters", min = 2, max = 10, value = 3),
              selectInput("clustering_method", "Clustering Method",
-                         choices = c("kmeans", "hierarchical", "distance_threshold"))
+                         choices = c("kmeans", "hierarchical", "distance_threshold")),
+             numericInput("distance_threshold", "Distance Threshold (if applicable)", value = NULL, min = 0, step = 0.1),
+
+             # Shape Styles Section
+             checkboxInput("show_shapes", "Show Shapes", value = FALSE),
+             conditionalPanel(
+               condition = "input.show_shapes == true",  # Only show if checkbox is checked
+               h4("Shape Styles"),
+
+               # Shape parameters
+               numericInput("shape_size", "Shape Size", value = 0.01, min = 0.001, step = 0.001),
+               numericInput("shape_x_adjust", "Shape X-Adjust", value = 0, step = 0.01),
+               numericInput("shape_y_adjust", "Shape Y-Adjust", value = 0, step = 0.01)
+             )
            ),
 
            "Elbow Plot" = tagList(
@@ -781,14 +842,22 @@ server <- function(input, output, session) {
              show_label_text_fields = input$show_label_text_fields
            ),
 
-
            "Cluster Plot" = cluster_plot(
              data = dataset(),
              x_col = input$x_col,
              y_col = input$y_col,
              method = input$clustering_method,
-             k = input$num_clusters
+             k = input$num_clusters,
+             distance_threshold = input$distance_threshold,
+             show_shapes = input$show_shapes,
+             shape_size = input$shape_size,
+             shape_x_adjust = input$shape_x_adjust,
+             shape_y_adjust = input$shape_y_adjust,
+             title = input$plot_title,
+             x_label = ifelse(input$x_axis_label == "", input$x_col, input$x_axis_label),
+             y_label = ifelse(input$y_axis_label == "", input$y_col, input$y_axis_label)
            ),
+
            "Elbow Plot" = elbow_plot(
              data = dataset(),
              x_col = input$x_col,
