@@ -1,12 +1,12 @@
 library(shiny)
 library(HaugShape)
 library(colourpicker)
-library(ggplot2)
-
+library(dplyr)
+library(shinyFiles)
+library(Momocs)
 
 ui <- fluidPage(
   titlePanel("HaugShape Shiny App"),
-
   sidebarLayout(
     sidebarPanel(
       downloadButton("download_plot", "Download Plot"),
@@ -15,31 +15,168 @@ ui <- fluidPage(
       selectInput(
         "function_select",
         "Choose Function to Use",
-        choices = c("Shape Plot", "Cluster Plot", "Elbow Plot"),
+        choices = c("Shape Plot", "Cluster Plot", "Elbow Plot",  "Overview Plot"),
         selected = "Shape Plot"
       ),
-      uiOutput("dynamic_ui")
+      uiOutput("dynamic_ui"),
+      h3("Shapes Configuration"),
+      shinyDirButton("shape_dir", "Select Shape Folder", "Please select a folder"),
+      textOutput("selected_dir"),
+      selectInput("shape_id_col", "Select ID Column for Shapes", choices = NULL),
+      actionButton("map_shapes", "Map Shapes to Data"),
+      textOutput("shape_mapping_status")
     ),
     mainPanel(
       tabsetPanel(
         tabPanel("Data Preview", DT::dataTableOutput("data_preview")),
-        tabPanel("Output Plot", plotOutput("output_plot"))
+        tabPanel("Output Plot", plotOutput("output_plot")),
+        tabPanel(
+          "Overview Results",
+          uiOutput("overview_results"))  # This dynamically shows all plots
       )
     )
   )
 )
 
 server <- function(input, output, session) {
-  # Reactive: Load dataset
-  dataset <- reactive({
+  # Initialize shinyFiles
+  volumes <- c(Home = fs::path_home(), "R Installation" = R.home(), getVolumes()())
+  shinyDirChoose(input, "shape_dir", roots = volumes, session = session)
+
+  # Reactive directory path
+  shape_directory <- reactiveVal(NULL)
+
+  observeEvent(input$shape_dir, {
+    dir_path <- parseDirPath(volumes, input$shape_dir)
+    shape_directory(dir_path)
+    output$selected_dir <- renderText({ paste("Selected Directory:", dir_path) })
+  })
+
+  # Update column choices for Overview Plot
+  observeEvent(dataset(), {
+    req(dataset())
+    cols <- colnames(dataset())
+    updateSelectizeInput(session, "overview_cols", choices = cols, selected = NULL)
+    updateSelectInput(session, "overview_group_col", choices = c("", cols))
+  })
+
+  # Update group values when a grouping column is selected
+  observeEvent(input$overview_group_col, {
+    req(dataset(), input$overview_group_col)
+    groups <- unique(dataset()[[input$overview_group_col]])
+    updateSelectInput(session, "overview_group_vals", choices = groups)
+  })
+
+  observeEvent(input$generate_overview, {
+    req(input$overview_cols)
+
+    # Validate column selection
+    if (length(input$overview_cols) %% 2 != 0) {
+      showNotification("Please select 2, 4, or 6 columns for the overview.", type = "error")
+      return(NULL)
+    }
+
+    # Call Haug_overview with new parameters
+    result <- Haug_overview(
+      data = dataset(),
+      cols = input$overview_cols,
+      group_col = ifelse(input$overview_group_col == "", NULL, input$overview_group_col),
+      group_vals = if (is.null(input$overview_group_vals) || length(input$overview_group_vals) == 0) NULL else input$overview_group_vals,
+      show_all_hulls = input$overview_show_all_hulls,
+      show_all_contours = input$overview_show_all_contours,
+      show_table = input$overview_show_table,
+      export_pdf = input$overview_export_pdf,
+      pdf_file_name = input$overview_pdf_name
+    )
+
+    # Display all generated plots dynamically
+    output$overview_results <- renderUI({
+      plot_list <- result$hull_and_contours
+      plot_outputs <- lapply(seq_along(plot_list), function(i) {
+        plotname <- paste0("plot_", i)
+        plotOutput(plotname, height = "400px", width = "100%")
+      })
+
+      boxplot_output <- plotOutput("boxplot_output", height = "400px", width = "100%")
+
+      # Combine all plots into a single UI output
+      do.call(tagList, c(plot_outputs, list(boxplot_output)))
+    })
+
+    # Render each hull plot individually
+    for (i in seq_along(result$hull_and_contours)) {
+      local({
+        plot_index <- i
+        output[[paste0("plot_", plot_index)]] <- renderPlot({
+          result$hull_and_contours[[plot_index]]$hull_plot
+        })
+      })
+    }
+
+    # Render the boxplot
+    output$boxplot_output <- renderPlot({
+      result$boxplot
+    })
+
+    # Optionally display specimen tables if show_table is TRUE
+    if (input$overview_show_table) {
+      output$specimen_tables <- renderUI({
+        tables <- result$tables
+        if (is.null(tables) || length(tables) == 0) {
+          return(h4("No specimen tables available."))
+        }
+
+        table_outputs <- lapply(names(tables), function(name) {
+          tagList(
+            h4(paste("Table:", name)),
+            DT::dataTableOutput(outputId = paste0("table_", name))
+          )
+        })
+
+        do.call(tagList, table_outputs)
+      })
+
+      # Render each table
+      for (name in names(result$tables)) {
+        local({
+          table_name <- name
+          output[[paste0("table_", table_name)]] <- DT::renderDataTable({
+            result$tables[[table_name]]
+          })
+        })
+      }
+    }
+  })
+
+
+  # Reactive: Dataset
+  dataset <- reactiveVal(NULL)
+
+  observeEvent(input$datafile, {
     req(input$datafile)
-    readxl::read_excel(input$datafile$datapath)
+    dataset(readxl::read_excel(input$datafile$datapath))
   })
 
   # Data Preview
   output$data_preview <- DT::renderDataTable({
     req(dataset())
     dataset()
+  })
+
+  observeEvent(input$function_select, {
+    req(dataset())
+    cols <- colnames(dataset())
+
+    if (input$function_select == "Shape Plot") {
+      updateSelectInput(session, "x_col", choices = cols, selected = NULL)
+      updateSelectInput(session, "y_col", choices = cols, selected = NULL)
+      updateSelectInput(session, "group_col", choices = c("", cols), selected = "")
+      updateSelectInput(session, "group_vals", choices = NULL, selected = NULL)
+    } else if (input$function_select == "Overview Plot") {
+      updateSelectizeInput(session, "overview_cols", choices = cols, selected = NULL)
+      updateSelectInput(session, "overview_group_col", choices = c("", cols), selected = NULL)
+      updateSelectInput(session, "overview_group_vals", choices = NULL, selected = NULL)
+    }
   })
 
   # Update column dropdowns when dataset changes
@@ -49,8 +186,8 @@ server <- function(input, output, session) {
     updateSelectInput(session, "x_col", choices = cols, selected = cols[1])
     updateSelectInput(session, "y_col", choices = cols, selected = cols[2])
     updateSelectInput(session, "group_col", choices = c("", cols), selected = "")
+    updateSelectInput(session, "shape_id_col", choices = cols, selected = cols[1])  # Shape ID column
   })
-
 
   output$download_plot <- downloadHandler(
     filename = function() {
@@ -102,6 +239,54 @@ server <- function(input, output, session) {
       })
     }
   )
+
+  observeEvent(input$group_col, {
+    req(dataset(), input$group_col)
+    groups <- unique(dataset()[[input$group_col]])
+
+    # Update shape groups dropdown
+    updateSelectInput(session, "show_shapes_for_groups", choices = c("All", groups), selected = groups)
+  })
+
+
+  # Observe the Map Shapes button click
+  observeEvent(input$map_shapes, {
+    req(dataset(), input$shape_id_col, shape_directory())
+
+    # Get the directory path
+    dir_path <- normalizePath(shape_directory(), winslash = "/", mustWork = FALSE)
+
+    # Call the function and update the dataset
+    updated_data <- map_shapes_to_data(dataset(), id_col = input$shape_id_col, shape_folder = dir_path)
+
+    # Update the reactive dataset
+    dataset(updated_data)
+  })
+
+  observeEvent(input$map_shapes, {
+    req(dataset(), input$shape_id_col, shape_directory())
+
+    # Validate the folder path
+    dir_path <- normalizePath(shape_directory(), winslash = "/", mustWork = FALSE)
+
+    tryCatch({
+      shiny::withProgress({
+        setProgress(0.1, message = "Processing shapes...")
+
+        # Call the function
+        updated_data <- map_shapes_to_data(dataset(), id_col = input$shape_id_col, shape_folder = dir_path)
+
+        setProgress(0.8, message = "Updating dataset...")
+        dataset(updated_data)  # Update reactive dataset
+
+        setProgress(1, message = "Mapping complete!")
+        output$shape_mapping_status <- renderText("Shapes successfully mapped!")
+      })
+    }, error = function(e) {
+      output$shape_mapping_status <- renderText(paste("Error during shape mapping:", e$message))
+    })
+  })
+
 
   # Update group values dynamically when group_col changes
   observeEvent(input$group_col, {
@@ -378,6 +563,54 @@ server <- function(input, output, session) {
                sliderInput("hull_alpha", "Hull Transparency (Alpha)", min = 0, max = 1, value = 0.1, step = 0.1)
              ),
 
+             # Shape Styles Section with toggle visibility
+             checkboxInput("show_shapes", "Show Shapes", value = FALSE),
+             conditionalPanel(
+               condition = "input.show_shapes == true",  # Only show if checkbox is checked
+               h4("Shape Styles"),
+
+               # Groups for shapes
+               selectInput(
+                 "show_shapes_for_groups",
+                 "Select Groups for Shapes",
+                 multiple = TRUE,
+                 choices = NULL
+               ),
+
+               # Shape size
+               numericInput(
+                 "shape_size",
+                 "Shape Size",
+                 value = 0.01,
+                 min = 0.001,
+                 step = 0.001
+               ),
+
+               # Shape shift
+               numericInput(
+                 "shape_shift",
+                 "Shape Shift",
+                 value = 0.1,
+                 min = 0,
+                 step = 0.01
+               ),
+
+               # Adjustments for shape positions
+               numericInput(
+                 "shape_x_adjust",
+                 "Shape X-Adjust",
+                 value = 0,
+                 step = 0.01
+               ),
+               numericInput(
+                 "shape_y_adjust",
+                 "Shape Y-Adjust",
+                 value = 0,
+                 step = 0.01
+               )
+             ),
+
+
              # Contours Section
              checkboxInput("show_contours", "Show Contours", value = FALSE),
              conditionalPanel(
@@ -422,6 +655,39 @@ server <- function(input, output, session) {
              selectInput("x_col", "Select X-Axis Column", choices = NULL),
              selectInput("y_col", "Select Y-Axis Column", choices = NULL),
              numericInput("max_k", "Maximum Number of Clusters", value = 10, min = 2)
+           ),
+           "Overview Plot" = tagList(
+             h4("Overview Plot Settings"),
+             selectizeInput(
+               inputId = "overview_cols",
+               label = "Select Columns for Overview (must be even number up to 20)",
+               choices = NULL,  # Dynamically updated
+               multiple = TRUE,
+               options = list(maxItems = 6)
+             ),
+             selectInput(
+               inputId = "overview_group_col",
+               label = "Select Grouping Column",
+               choices = NULL
+             ),
+             selectInput(
+               inputId = "overview_group_vals",
+               label = "Select Groups to Include (Optional)",
+               choices = NULL,
+               multiple = TRUE
+             ),
+             checkboxInput("overview_export_pdf", "Export Overview to PDF", value = FALSE),
+             conditionalPanel(
+               condition = "input.overview_export_pdf == true",
+               tagList(
+                 textInput("overview_pdf_name", "PDF File Name", value = "overview_plots.pdf"),
+                 checkboxInput("overview_show_all_hulls", "Show All Hulls (in PDF)", value = FALSE),
+                 checkboxInput("overview_show_all_contours", "Show All Contours (in PDF)", value = FALSE),
+                 checkboxInput("overview_show_table", "Show Specimen Table (in PDF)", value = FALSE)
+               )
+
+             ),
+             actionButton("generate_overview", "Generate Overview Plot")
            )
     )
   })
@@ -435,6 +701,12 @@ server <- function(input, output, session) {
       unique(dataset()[[input$group_col]])  # Include all groups
     } else {
       input$group_vals  # Use selected groups
+    }
+
+    shapes_for_groups <- if ("All" %in% input$show_shapes_for_groups) {
+      unique(dataset()[[input$group_col]])
+    } else {
+      input$show_shapes_for_groups
     }
 
     # Extract dynamic point styles
@@ -481,10 +753,14 @@ server <- function(input, output, session) {
              hull_color = hull_color,
              hull_linetype = input$hull_linetype,
              hull_alpha = input$hull_alpha,
-             show_contours = input$show_contours,
-             show_contours_for_groups = input$show_contours_for_groups,
-             contour_colors = input$contour_colors,
-             contour_linewidth = input$contour_linewidth,
+
+             # Shape parameters
+             show_shapes = input$show_shapes,
+             show_shapes_for_groups = shapes_for_groups,
+             shape_size = input$shape_size,
+             shape_shift = input$shape_shift,
+             shape_x_adjust = input$shape_x_adjust,
+             shape_y_adjust = input$shape_y_adjust,
 
              # Plot & Coordinate Settings
              title = ifelse(input$plot_title == "", "", input$plot_title),  # Default to empty string for title
