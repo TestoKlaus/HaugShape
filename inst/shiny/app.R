@@ -1,14 +1,16 @@
 library(shiny)
 library(HaugShape)
 library(colourpicker)
-library(dplyr)
-library(shinyFiles)
-library(Momocs)
+library(ggplot2)
+
 
 ui <- fluidPage(
   titlePanel("HaugShape Shiny App"),
+
   sidebarLayout(
     sidebarPanel(
+      downloadButton("download_plot", "Download Plot"),
+
       fileInput("datafile", "Upload Your Data (Excel)"),
       selectInput(
         "function_select",
@@ -16,13 +18,7 @@ ui <- fluidPage(
         choices = c("Shape Plot", "Cluster Plot", "Elbow Plot"),
         selected = "Shape Plot"
       ),
-      uiOutput("dynamic_ui"),
-      h3("Shapes Configuration"),
-      shinyDirButton("shape_dir", "Select Shape Folder", "Please select a folder"),
-      textOutput("selected_dir"),
-      selectInput("shape_id_col", "Select ID Column for Shapes", choices = NULL),
-      actionButton("map_shapes", "Map Shapes to Data"),
-      textOutput("shape_mapping_status")
+      uiOutput("dynamic_ui")
     ),
     mainPanel(
       tabsetPanel(
@@ -34,26 +30,10 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
-  # Initialize shinyFiles
-  volumes <- c(Home = fs::path_home(), "R Installation" = R.home(), getVolumes()())
-  shinyDirChoose(input, "shape_dir", roots = volumes, session = session)
-
-  # Reactive directory path
-  shape_directory <- reactiveVal(NULL)
-
-  observeEvent(input$shape_dir, {
-    dir_path <- parseDirPath(volumes, input$shape_dir)
-    shape_directory(dir_path)
-    output$selected_dir <- renderText({ paste("Selected Directory:", dir_path) })
-  })
-
-
-  # Reactive: Dataset
-  dataset <- reactiveVal(NULL)
-
-  observeEvent(input$datafile, {
+  # Reactive: Load dataset
+  dataset <- reactive({
     req(input$datafile)
-    dataset(readxl::read_excel(input$datafile$datapath))
+    readxl::read_excel(input$datafile$datapath)
   })
 
   # Data Preview
@@ -69,47 +49,59 @@ server <- function(input, output, session) {
     updateSelectInput(session, "x_col", choices = cols, selected = cols[1])
     updateSelectInput(session, "y_col", choices = cols, selected = cols[2])
     updateSelectInput(session, "group_col", choices = c("", cols), selected = "")
-    updateSelectInput(session, "shape_id_col", choices = cols, selected = cols[1])  # Shape ID column
   })
 
-  # Observe the Map Shapes button click
-  observeEvent(input$map_shapes, {
-    req(dataset(), input$shape_id_col, shape_directory())
 
-    # Get the directory path
-    dir_path <- normalizePath(shape_directory(), winslash = "/", mustWork = FALSE)
+  output$download_plot <- downloadHandler(
+    filename = function() {
+      paste0("shape_plot_output", ".tiff")  # Default file name
+    },
+    content = function(file) {
+      tryCatch({
+        req(dataset(), input$x_col, input$y_col)
 
-    # Call the function and update the dataset
-    updated_data <- map_shapes_to_data(dataset(), id_col = input$shape_id_col, shape_folder = dir_path)
+        # Generate the plot
+        plot_to_save <- shape_plot(
+          data = dataset(),
+          x_col = input$x_col,
+          y_col = input$y_col,
+          group_col = input$group_col,
+          group_vals = if ("All" %in% input$group_vals) {
+            unique(dataset()[[input$group_col]])
+          } else {
+            input$group_vals
+          },
+          point_color = sapply(seq_along(input$group_vals), function(i) input[[paste0("point_color_", i)]]),
+          point_fill = sapply(seq_along(input$group_vals), function(i) input[[paste0("point_fill_", i)]]),
+          point_shape = as.numeric(sapply(seq_along(input$group_vals), function(i) input[[paste0("point_shape_", i)]])),
+          point_size = sapply(seq_along(input$group_vals), function(i) input[[paste0("point_size_", i)]]),
+          show_hulls = input$show_hulls,
+          hull_fill = sapply(seq_along(input$group_vals), function(i) input[[paste0("hull_fill_", i)]]),
+          hull_color = sapply(seq_along(input$group_vals), function(i) input[[paste0("hull_color_", i)]]),
+          hull_alpha = input$hull_alpha,
+          title = input$plot_title,
+          x_label = ifelse(input$x_axis_label == "", input$x_col, input$x_axis_label),
+          y_label = ifelse(input$y_axis_label == "", input$y_col, input$y_axis_label),
+          tick_size = input$tick_size,
+          axis_linewidth = input$axis_linewidth
+        )
 
-    # Update the reactive dataset
-    dataset(updated_data)
-  })
+        # Save the plot to the specified file
+        ggsave(
+          filename = file,
+          plot = plot_to_save,
+          device = "tiff",
+          dpi = 600,
+          width = 10,
+          height = 7
+        )
 
-  observeEvent(input$map_shapes, {
-    req(dataset(), input$shape_id_col, shape_directory())
-
-    # Validate the folder path
-    dir_path <- normalizePath(shape_directory(), winslash = "/", mustWork = FALSE)
-
-    tryCatch({
-      shiny::withProgress({
-        setProgress(0.1, message = "Processing shapes...")
-
-        # Call the function
-        updated_data <- map_shapes_to_data(dataset(), id_col = input$shape_id_col, shape_folder = dir_path)
-
-        setProgress(0.8, message = "Updating dataset...")
-        dataset(updated_data)  # Update reactive dataset
-
-        setProgress(1, message = "Mapping complete!")
-        output$shape_mapping_status <- renderText("Shapes successfully mapped!")
+        showNotification("Plot successfully saved!", type = "message")
+      }, error = function(e) {
+        showNotification(paste("Error saving plot:", e$message), type = "error")
       })
-    }, error = function(e) {
-      output$shape_mapping_status <- renderText(paste("Error during shape mapping:", e$message))
-    })
-  })
-
+    }
+  )
 
   # Update group values dynamically when group_col changes
   observeEvent(input$group_col, {
@@ -321,7 +313,7 @@ server <- function(input, output, session) {
              selectInput("group_vals", "Select Groups to Show", multiple = TRUE, choices = NULL),
 
              # Inside output$dynamic_ui (under "Shape Plot" tagList)
-             checkboxInput("toggle_plot_settings", "Show Plot & Coordinate Settings Menu", value = TRUE),
+             checkboxInput("toggle_plot_settings", "Show Plot & Coordinate Settings Menu", value = FALSE),
              conditionalPanel(
                condition = "input.toggle_plot_settings == true",  # Only show if checkbox is checked
                h4("Plot & Coordinate Settings"),
@@ -489,10 +481,10 @@ server <- function(input, output, session) {
              hull_color = hull_color,
              hull_linetype = input$hull_linetype,
              hull_alpha = input$hull_alpha,
-             show_shapes = !is.null(dataset()$shape),  # Only show shapes if they exist
-             shape_col = "shape",
-             shape_size = 0.01,
-             shape_shift = 0.1,
+             show_contours = input$show_contours,
+             show_contours_for_groups = input$show_contours_for_groups,
+             contour_colors = input$contour_colors,
+             contour_linewidth = input$contour_linewidth,
 
              # Plot & Coordinate Settings
              title = ifelse(input$plot_title == "", "", input$plot_title),  # Default to empty string for title
