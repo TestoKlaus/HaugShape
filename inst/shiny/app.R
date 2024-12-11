@@ -33,7 +33,22 @@ ui <- fluidPage(
         tabPanel("Output Plot", plotOutput("output_plot")),
         tabPanel(
           "Overview Results",
-          uiOutput("overview_results"))  # This dynamically shows all plots
+          uiOutput("overview_results")),  # This dynamically shows all plots
+        tabPanel(
+          "Image Processing",
+          h4("Convert PNG Files to JPG"),
+          shinyDirButton("png_input_dir", "Select PNG Folder", "Choose a folder with PNG files"),
+          textOutput("png_input_dir_text"),
+          shinyDirButton("jpg_output_dir", "Select Output Folder", "Choose a folder for JPG files"),
+          textOutput("jpg_output_dir_text"),
+          numericInput("resize_width", "Resize Width (pixels, optional):", value = NULL, min = 1),
+          numericInput("resize_height", "Resize Height (pixels, optional):", value = NULL, min = 1),
+          numericInput("padding", "Padding (pixels):", value = 10, min = 0),
+          numericInput("quality", "JPG Quality (0-100):", value = 100, min = 0, max = 100),
+          actionButton("convert_images", "Convert Images"),
+          textOutput("conversion_status")
+        )
+
       )
     )
   )
@@ -52,6 +67,63 @@ server <- function(input, output, session) {
     shape_directory(dir_path)
     output$selected_dir <- renderText({ paste("Selected Directory:", dir_path) })
   })
+
+  # Reactive values for directories
+  input_dir <- reactiveVal(NULL)
+  output_dir <- reactiveVal(NULL)
+
+  # Handle input directory selection
+  shinyDirChoose(input, "png_input_dir", roots = volumes, session = session)
+  observeEvent(input$png_input_dir, {
+    dir_path <- parseDirPath(volumes, input$png_input_dir)
+    input_dir(dir_path)
+    output$png_input_dir_text <- renderText({ paste("Selected PNG Folder:", dir_path) })
+  })
+
+  # Handle output directory selection
+  shinyDirChoose(input, "jpg_output_dir", roots = volumes, session = session)
+  observeEvent(input$jpg_output_dir, {
+    dir_path <- parseDirPath(volumes, input$jpg_output_dir)
+    output_dir(dir_path)
+    output$jpg_output_dir_text <- renderText({ paste("Selected Output Folder:", dir_path) })
+  })
+
+  observeEvent(input$convert_images, {
+    req(input_dir(), output_dir())  # Ensure both directories are selected
+
+    tryCatch({
+      # Get list of PNG files from the input directory
+      png_files <- list.files(input_dir(), pattern = "\\.png$", full.names = TRUE, ignore.case = TRUE)
+
+      # Validate input
+      if (length(png_files) == 0) {
+        output$conversion_status <- renderText("No PNG files found in the selected folder.")
+        return(NULL)
+      }
+
+      # Resize dimensions (if provided)
+      fixed_dim <- list(
+        width = if (!is.null(input$resize_width)) input$resize_width else NULL,
+        height = if (!is.null(input$resize_height)) input$resize_height else NULL
+      )
+
+      # Process each file
+      lapply(png_files, function(file) {
+        convert_png_to_jpg(
+          file_path = file,
+          output_dir = output_dir(),
+          fixed_dim = fixed_dim,
+          padding = input$padding,
+          quality = input$quality
+        )
+      })
+
+      output$conversion_status <- renderText("All images successfully converted!")
+    }, error = function(e) {
+      output$conversion_status <- renderText(paste("Error:", e$message))
+    })
+  })
+
 
   # Update column choices for Overview Plot
   observeEvent(dataset(), {
