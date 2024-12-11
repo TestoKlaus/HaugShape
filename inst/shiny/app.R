@@ -71,6 +71,8 @@ ui <- fluidPage(
           h4("Run Shape Analysis"),
           shinyDirButton("shape_analysis_dir", "Select Shape Folder", "Choose a folder with shape files"),
           textOutput("shape_analysis_dir_text"),
+          shinyDirButton("output_dir", "Select Output Directory", "Choose a folder for Excel file"),
+          textOutput("selected_output_dir"),
           checkboxInput("norm", "Normalize Fourier Descriptors (norm)", value = TRUE),
           numericInput("num_pcs", "Number of PCs to Display in Contribution Plot:", value = 10, min = 1),
           selectInput(
