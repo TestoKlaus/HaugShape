@@ -65,8 +65,29 @@ ui <- fluidPage(
           textOutput("complete_status"),
           tags$hr()  # Adds a horizontal line to separate sections
 
+        ),
+        tabPanel(
+          "Shape Analysis",
+          h4("Run Shape Analysis"),
+          shinyDirButton("shape_analysis_dir", "Select Shape Folder", "Choose a folder with shape files"),
+          textOutput("shape_analysis_dir_text"),
+          checkboxInput("norm", "Normalize Fourier Descriptors (norm)", value = TRUE),
+          numericInput("num_pcs", "Number of PCs to Display in Contribution Plot:", value = 10, min = 1),
+          selectInput(
+            "start_point",
+            "Starting Point for Normalization:",
+            choices = c("left", "up", "down", "right"),
+            selected = "left"
+          ),
+          textInput("output_file", "Output File Name (Excel):", value = "shape_analysis.xlsx"),
+          actionButton("run_analysis", "Run Analysis"),
+          tags$hr(),
+          h4("Summary Output"),
+          verbatimTextOutput("pca_summary"),
+          tags$hr(),
+          h4("PC Contribution Plot"),
+          plotOutput("pc_contrib_plot")
         )
-
       )
     )
   )
@@ -237,6 +258,47 @@ server <- function(input, output, session) {
     }, error = function(e) {
       # Handle errors and display message
       output$complete_status <- renderText(paste("Error during processing:", e$message))
+    })
+  })
+
+  # Reactive directory for shape analysis
+  shape_analysis_dir <- reactiveVal(NULL)
+
+  # Handle shape analysis directory selection
+  shinyDirChoose(input, "shape_analysis_dir", roots = volumes, session = session)
+  observeEvent(input$shape_analysis_dir, {
+    dir_path <- parseDirPath(volumes, input$shape_analysis_dir)
+    shape_analysis_dir(dir_path)
+    output$shape_analysis_dir_text <- renderText({ paste("Selected Shape Folder:", dir_path) })
+  })
+
+  # Run Shape Analysis
+  observeEvent(input$run_analysis, {
+    req(shape_analysis_dir())  # Ensure the shape folder is selected
+
+    tryCatch({
+      # Run the shape_analysis function
+      result <- shape_analysis(
+        shape_dir = shape_analysis_dir(),
+        norm = input$norm,
+        output_file = input$output_file,
+        num_pcs = input$num_pcs,
+        start_point = input$start_point
+      )
+
+      # Update summary and plot
+      output$pca_summary <- renderText({
+        paste("PCA Summary:\n", result$summary)
+      })
+
+      output$pc_contrib_plot <- renderPlot({
+        result$pc_contrib_plot
+      })
+
+      showNotification("Shape analysis completed successfully!", type = "message")
+    }, error = function(e) {
+      # Handle errors and display a notification
+      showNotification(paste("Error during analysis:", e$message), type = "error")
     })
   })
 
