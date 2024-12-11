@@ -980,7 +980,7 @@ server <- function(input, output, session) {
                label = "Select Columns for Overview (must be even number up to 20)",
                choices = NULL,  # Dynamically updated
                multiple = TRUE,
-               options = list(maxItems = 6)
+               options = list(maxItems = 20)
              ),
              selectInput(
                inputId = "overview_group_col",
