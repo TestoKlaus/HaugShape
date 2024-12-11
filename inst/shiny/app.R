@@ -482,6 +482,7 @@ server <- function(input, output, session) {
                                  point_shape = as.numeric(sapply(seq_along(input$group_vals), function(i) input[[paste0("point_shape_", i)]])),
                                  point_size = sapply(seq_along(input$group_vals), function(i) input[[paste0("point_size_", i)]]),
                                  show_hulls = input$show_hulls,
+                                 show_hull_for_groups = input$show_hull_for_groups,
                                  hull_fill = sapply(seq_along(input$group_vals), function(i) input[[paste0("hull_fill_", i)]]),
                                  hull_color = sapply(seq_along(input$group_vals), function(i) input[[paste0("hull_color_", i)]]),
                                  hull_alpha = input$hull_alpha,
@@ -530,7 +531,7 @@ server <- function(input, output, session) {
           filename = file,
           plot = plot_to_save,
           device = "tiff",
-          dpi = 300,
+          dpi = 600,
           width = 10,
           height = 7
         )
