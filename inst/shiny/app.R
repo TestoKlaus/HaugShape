@@ -46,7 +46,25 @@ ui <- fluidPage(
           numericInput("padding", "Padding (pixels):", value = 10, min = 0),
           numericInput("quality", "JPG Quality (0-100):", value = 100, min = 0, max = 100),
           actionButton("convert_images", "Convert Images"),
-          textOutput("conversion_status")
+          textOutput("conversion_status"),
+          tags$hr(),  # Adds a horizontal line to separate sections
+          h4("Cut Images in Half (Retain Right Half)"),
+          shinyDirButton("cut_input_dir", "Select Input Folder", "Choose a folder with images"),
+          textOutput("cut_input_dir_text"),
+          shinyDirButton("cut_output_dir", "Select Output Folder", "Choose a folder for processed images"),
+          textOutput("cut_output_dir_text"),
+          actionButton("cut_images", "Process Images"),
+          textOutput("cut_status"),
+          tags$hr(),  # Adds a horizontal line to separate sections
+          h4("Complete Halved Shapes to Symmetrical Images"),
+          shinyDirButton("complete_input_dir", "Select Input Folder", "Choose a folder with halved images"),
+          textOutput("complete_input_dir_text"),
+          shinyDirButton("complete_output_dir", "Select Output Folder", "Choose a folder for completed images"),
+          textOutput("complete_output_dir_text"),
+          actionButton("complete_shapes", "Complete Halved Shapes"),
+          textOutput("complete_status"),
+          tags$hr()  # Adds a horizontal line to separate sections
+
         )
 
       )
@@ -88,26 +106,67 @@ server <- function(input, output, session) {
     output$jpg_output_dir_text <- renderText({ paste("Selected Output Folder:", dir_path) })
   })
 
+  # Reactive values for directories
+  cut_input_dir <- reactiveVal(NULL)
+  cut_output_dir <- reactiveVal(NULL)
+
+  # Handle input directory selection
+  shinyDirChoose(input, "cut_input_dir", roots = volumes, session = session)
+  observeEvent(input$cut_input_dir, {
+    dir_path <- parseDirPath(volumes, input$cut_input_dir)
+    cut_input_dir(dir_path)
+    output$cut_input_dir_text <- renderText({ paste("Selected Input Folder:", dir_path) })
+  })
+
+  # Handle output directory selection
+  shinyDirChoose(input, "cut_output_dir", roots = volumes, session = session)
+  observeEvent(input$cut_output_dir, {
+    dir_path <- parseDirPath(volumes, input$cut_output_dir)
+    cut_output_dir(dir_path)
+    output$cut_output_dir_text <- renderText({ paste("Selected Output Folder:", dir_path) })
+  })
+
+  # Reactive values for directories
+  complete_input_dir <- reactiveVal(NULL)
+  complete_output_dir <- reactiveVal(NULL)
+
+  # Handle input directory selection
+  shinyDirChoose(input, "complete_input_dir", roots = volumes, session = session)
+  observeEvent(input$complete_input_dir, {
+    dir_path <- parseDirPath(volumes, input$complete_input_dir)
+    complete_input_dir(dir_path)
+    output$complete_input_dir_text <- renderText({ paste("Selected Input Folder:", dir_path) })
+  })
+
+  # Handle output directory selection
+  shinyDirChoose(input, "complete_output_dir", roots = volumes, session = session)
+  observeEvent(input$complete_output_dir, {
+    dir_path <- parseDirPath(volumes, input$complete_output_dir)
+    complete_output_dir(dir_path)
+    output$complete_output_dir_text <- renderText({ paste("Selected Output Folder:", dir_path) })
+  })
+
+
   observeEvent(input$convert_images, {
     req(input_dir(), output_dir())  # Ensure both directories are selected
 
     tryCatch({
-      # Get list of PNG files from the input directory
+      # Retrieve file paths of PNG files in the input directory
       png_files <- list.files(input_dir(), pattern = "\\.png$", full.names = TRUE, ignore.case = TRUE)
 
-      # Validate input
+      # Validate that there are PNG files to process
       if (length(png_files) == 0) {
         output$conversion_status <- renderText("No PNG files found in the selected folder.")
         return(NULL)
       }
 
-      # Resize dimensions (if provided)
+      # Create a fixed_dim list based on user inputs
       fixed_dim <- list(
-        width = if (!is.null(input$resize_width)) input$resize_width else NULL,
-        height = if (!is.null(input$resize_height)) input$resize_height else NULL
+        width = if (!is.null(input$resize_width) && !is.na(input$resize_width) && input$resize_width > 0) input$resize_width else NULL,
+        height = if (!is.null(input$resize_height) && !is.na(input$resize_height) && input$resize_height > 0) input$resize_height else NULL
       )
 
-      # Process each file
+      # Process each PNG file and save as JPG
       lapply(png_files, function(file) {
         convert_png_to_jpg(
           file_path = file,
@@ -118,9 +177,66 @@ server <- function(input, output, session) {
         )
       })
 
-      output$conversion_status <- renderText("All images successfully converted!")
+      output$conversion_status <- renderText("All PNG images have been successfully converted to JPG!")
     }, error = function(e) {
-      output$conversion_status <- renderText(paste("Error:", e$message))
+      # Handle errors and display message
+      output$conversion_status <- renderText(paste("Error during conversion:", e$message))
+    })
+  })
+
+  observeEvent(input$cut_images, {
+    req(cut_input_dir(), cut_output_dir())  # Ensure both directories are selected
+
+    tryCatch({
+      # Retrieve file paths of all images in the input directory
+      image_files <- list.files(cut_input_dir(), pattern = "\\.(png|jpg|jpeg)$", full.names = TRUE, ignore.case = TRUE)
+
+      # Validate that there are images to process
+      if (length(image_files) == 0) {
+        output$cut_status <- renderText("No images found in the selected folder.")
+        return(NULL)
+      }
+
+      # Process each image and save the right half
+      lapply(image_files, function(file) {
+        cut_image_right_half(
+          file_path = file,
+          output_dir = cut_output_dir()
+        )
+      })
+
+      output$cut_status <- renderText("All images have been successfully processed!")
+    }, error = function(e) {
+      # Handle errors and display message
+      output$cut_status <- renderText(paste("Error during processing:", e$message))
+    })
+  })
+
+  observeEvent(input$complete_shapes, {
+    req(complete_input_dir(), complete_output_dir())  # Ensure both directories are selected
+
+    tryCatch({
+      # Retrieve file paths of all images in the input directory
+      halved_images <- list.files(complete_input_dir(), pattern = "\\.(png|jpg|jpeg)$", full.names = TRUE, ignore.case = TRUE)
+
+      # Validate that there are images to process
+      if (length(halved_images) == 0) {
+        output$complete_status <- renderText("No images found in the selected folder.")
+        return(NULL)
+      }
+
+      # Process each halved image and save the symmetrical result
+      lapply(halved_images, function(file) {
+        complete_halved_shape(
+          file_path = file,
+          output_dir = complete_output_dir()
+        )
+      })
+
+      output$complete_status <- renderText("All halved shapes have been successfully completed to symmetrical images!")
+    }, error = function(e) {
+      # Handle errors and display message
+      output$complete_status <- renderText(paste("Error during processing:", e$message))
     })
   })
 
