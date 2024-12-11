@@ -8,7 +8,9 @@
 #' (images in JPG format). The directory must exist and contain at least one valid JPG file.
 #' @param norm Logical. Should the Fourier descriptors be normalized? If TRUE, shapes are
 #' normalized to the first harmonic. If FALSE, shapes are normalized to the longest radius. Default is TRUE.
-#' @param output_file A character string specifying the path to the Excel file where PCA scores will
+#' @param output_dir A character string specifying the directory where the Excel file will be saved.
+#' If NULL, the file will be saved in the working directory.
+#' @param output_file A character string specifying the name of the Excel file where PCA scores will
 #' be saved. Default is "shape_analysis.xlsx".
 #' @param num_pcs Integer. The number of principal components to display in the PC contribution plot. Default is 10.
 #' @param start_point A character string specifying the starting point for alignment during shape normalization.
@@ -37,6 +39,7 @@
 #' shape_analysis(
 #'   shape_dir = "path/to/shape/directory",
 #'   norm = TRUE,
+#'   output_dir = "path/to/output/directory",
 #'   output_file = "shape_analysis_results.xlsx",
 #'   num_pcs = 5,
 #'   start_point = "down"
@@ -44,8 +47,8 @@
 #' }
 #'
 #' @export
-shape_analysis <- function(shape_dir, norm = TRUE, output_file = "shape_analysis.xlsx",
-                           num_pcs = 10, start_point = "left") {
+shape_analysis <- function(shape_dir, norm = TRUE, output_dir = NULL,
+                           output_file = "shape_analysis.xlsx", num_pcs = 10, start_point = "left") {
   if (!requireNamespace("Momocs", quietly = TRUE)) {
     stop("The Momocs package is required but is not installed. Please install it.")
   }
@@ -68,6 +71,15 @@ shape_analysis <- function(shape_dir, norm = TRUE, output_file = "shape_analysis
   if (length(shape_files) == 0) {
     stop("No JPG files found in the specified directory.")
   }
+
+  # Set output directory and file path
+  if (is.null(output_dir)) {
+    output_dir <- getwd()
+  }
+  if (!dir.exists(output_dir)) {
+    stop("The specified output directory does not exist.")
+  }
+  output_file_path <- file.path(output_dir, output_file)
 
   # Import shapes and convert to Coo object
   shapes <- Momocs::import_jpg(shape_files) %>% Momocs::Out()
@@ -97,8 +109,8 @@ shape_analysis <- function(shape_dir, norm = TRUE, output_file = "shape_analysis
 
   # Attempt to write to Excel
   tryCatch({
-    openxlsx::write.xlsx(scores, file = output_file, rowNames = FALSE)
-    message("Excel file successfully written to: ", output_file)
+    openxlsx::write.xlsx(scores, file = output_file_path, rowNames = FALSE)
+    message("Excel file successfully written to: ", output_file_path)
   }, error = function(e) {
     stop("Failed to write Excel file: ", e$message)
   })
