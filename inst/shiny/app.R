@@ -277,11 +277,15 @@ server <- function(input, output, session) {
     req(shape_analysis_dir())  # Ensure the shape folder is selected
 
     tryCatch({
+      # Define output file path explicitly
+      output_file_path <- file.path(tempdir(), input$output_file)
+      message("Output file path: ", output_file_path)
+
       # Run the shape_analysis function
       result <- shape_analysis(
         shape_dir = shape_analysis_dir(),
         norm = input$norm,
-        output_file = input$output_file,
+        output_file = output_file_path,
         num_pcs = input$num_pcs,
         start_point = input$start_point
       )
@@ -296,12 +300,12 @@ server <- function(input, output, session) {
       })
 
       showNotification("Shape analysis completed successfully!", type = "message")
+      showNotification(paste("Excel file saved to:", output_file_path), type = "message")
     }, error = function(e) {
       # Handle errors and display a notification
       showNotification(paste("Error during analysis:", e$message), type = "error")
     })
   })
-
 
   # Update column choices for Overview Plot
   observeEvent(dataset(), {
