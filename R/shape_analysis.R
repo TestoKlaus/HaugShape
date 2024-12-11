@@ -90,11 +90,18 @@ shape_analysis <- function(shape_dir, norm = TRUE, output_file = "shape_analysis
     stop("PCA failed: ", e$message)
   })
 
-  # Extract PCA scores and write to Excel
+  # Extract PCA scores
   scores <- as.data.frame(pca_results$x)
   scores$ID <- rownames(scores)
   scores <- scores[, c("ID", setdiff(names(scores), "ID"))]
-  openxlsx::write.xlsx(scores, file = output_file, rowNames = FALSE)
+
+  # Attempt to write to Excel
+  tryCatch({
+    openxlsx::write.xlsx(scores, file = output_file, rowNames = FALSE)
+    message("Excel file successfully written to: ", output_file)
+  }, error = function(e) {
+    stop("Failed to write Excel file: ", e$message)
+  })
 
   # Generate PCA summary
   pca_summary <- capture.output(summary(pca_results))
