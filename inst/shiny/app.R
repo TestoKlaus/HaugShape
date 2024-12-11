@@ -308,6 +308,18 @@ server <- function(input, output, session) {
     })
   })
 
+  # Initialize reactive for PDF output directory
+  overview_pdf_dir <- reactiveVal(NULL)
+
+  # Handle directory selection for Overview PDF
+  shinyDirChoose(input, "overview_pdf_dir", roots = volumes, session = session)
+
+  observeEvent(input$overview_pdf_dir, {
+    dir_path <- parseDirPath(volumes, input$overview_pdf_dir)
+    overview_pdf_dir(dir_path)
+    output$overview_pdf_dir_text <- renderText({ paste("Selected Output Directory:", dir_path) })
+  })
+
   # Update column choices for Overview Plot
   observeEvent(dataset(), {
     req(dataset())
@@ -332,7 +344,13 @@ server <- function(input, output, session) {
       return(NULL)
     }
 
-    # Call Haug_overview with new parameters
+    # Validate directory if export_pdf is selected
+    if (input$overview_export_pdf && is.null(overview_pdf_dir())) {
+      showNotification("Please select an output directory for the PDF.", type = "error")
+      return(NULL)
+    }
+
+    # Call Haug_overview with the new output directory parameter
     result <- Haug_overview(
       data = dataset(),
       cols = input$overview_cols,
@@ -342,7 +360,8 @@ server <- function(input, output, session) {
       show_all_contours = input$overview_show_all_contours,
       show_table = input$overview_show_table,
       export_pdf = input$overview_export_pdf,
-      pdf_file_name = input$overview_pdf_name
+      pdf_file_name = input$overview_pdf_name,
+      output_dir = overview_pdf_dir()  # Pass the selected directory
     )
 
     # Display all generated plots dynamically
@@ -403,7 +422,6 @@ server <- function(input, output, session) {
       }
     }
   })
-
 
   # Reactive: Dataset
   dataset <- reactiveVal(NULL)
@@ -993,17 +1011,20 @@ server <- function(input, output, session) {
                choices = NULL,
                multiple = TRUE
              ),
+             # In the "Overview Plot" tabPanel
              checkboxInput("overview_export_pdf", "Export Overview to PDF", value = FALSE),
              conditionalPanel(
                condition = "input.overview_export_pdf == true",
                tagList(
                  textInput("overview_pdf_name", "PDF File Name", value = "overview_plots.pdf"),
+                 shinyDirButton("overview_pdf_dir", "Select Output Directory for PDF", "Choose a folder for PDF"),
+                 textOutput("overview_pdf_dir_text"),  # To display the selected directory
                  checkboxInput("overview_show_all_hulls", "Show All Hulls (in PDF)", value = FALSE),
                  checkboxInput("overview_show_all_contours", "Show All Contours (in PDF)", value = FALSE),
                  checkboxInput("overview_show_table", "Show Specimen Table (in PDF)", value = FALSE)
                )
-
              ),
+
              actionButton("generate_overview", "Generate Overview Plot")
            )
     )
