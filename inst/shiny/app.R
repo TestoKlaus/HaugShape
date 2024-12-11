@@ -272,37 +272,36 @@ server <- function(input, output, session) {
     output$shape_analysis_dir_text <- renderText({ paste("Selected Shape Folder:", dir_path) })
   })
 
-  # Run Shape Analysis
+  # Reactive value for output directory
+  output_dir <- reactiveVal(NULL)
+
+  # Handle output directory selection
+  shinyDirChoose(input, "output_dir", roots = volumes, session = session)
+  observeEvent(input$output_dir, {
+    dir_path <- parseDirPath(volumes, input$output_dir)
+    output_dir(dir_path)
+    output$selected_output_dir <- renderText({ paste("Selected Output Directory:", dir_path) })
+  })
+
+  # Run Shape Analysis with output directory
   observeEvent(input$run_analysis, {
-    req(shape_analysis_dir())  # Ensure the shape folder is selected
+    req(shape_analysis_dir(), output_dir())  # Ensure directories are selected
 
     tryCatch({
-      # Define output file path explicitly
-      output_file_path <- file.path(tempdir(), input$output_file)
-      message("Output file path: ", output_file_path)
-
-      # Run the shape_analysis function
       result <- shape_analysis(
         shape_dir = shape_analysis_dir(),
         norm = input$norm,
-        output_file = output_file_path,
+        output_dir = output_dir(),
+        output_file = input$output_file,
         num_pcs = input$num_pcs,
         start_point = input$start_point
       )
 
-      # Update summary and plot
-      output$pca_summary <- renderText({
-        paste("PCA Summary:\n", result$summary)
-      })
-
-      output$pc_contrib_plot <- renderPlot({
-        result$pc_contrib_plot
-      })
+      output$pca_summary <- renderText({ paste("PCA Summary:\n", result$summary) })
+      output$pc_contrib_plot <- renderPlot({ result$pc_contrib_plot })
 
       showNotification("Shape analysis completed successfully!", type = "message")
-      showNotification(paste("Excel file saved to:", output_file_path), type = "message")
     }, error = function(e) {
-      # Handle errors and display a notification
       showNotification(paste("Error during analysis:", e$message), type = "error")
     })
   })
