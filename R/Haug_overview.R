@@ -79,7 +79,7 @@ Haug_overview <- function(data,
                           plot_height = 10,
                           resolution = 300,
                           plot_spacing = 0.3,
-                          save_path = NULL,
+                          output_dir = NULL,  # Add new parameter for output directory
                           export_pdf = FALSE,
                           pdf_file_name = "overview_plots.pdf",
                           show_all_hulls = FALSE,
@@ -251,7 +251,18 @@ Haug_overview <- function(data,
 
   # Save the overview panel as a PDF if export_pdf is TRUE
   if (export_pdf) {
-    pdf(file = pdf_file_name, width = plot_width, height = plot_height)
+    if (!is.null(output_dir)) {
+      # Ensure the directory exists
+      if (!dir.exists(output_dir)) {
+        stop("The specified output directory does not exist. Please provide a valid directory.")
+      }
+      # Combine output directory with file name
+      pdf_path <- file.path(output_dir, pdf_file_name)
+    } else {
+      pdf_path <- pdf_file_name  # Default to current working directory
+    }
+
+    pdf(file = pdf_path, width = plot_width, height = plot_height)
 
     # 1. Print the hull plots (2 or 3 per page)
     hull_plots <- lapply(all_plots, function(plot_set) plot_set$hull_plot)
