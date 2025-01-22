@@ -27,7 +27,7 @@ Haug_overview(
   plot_height = 10,
   resolution = 300,
   plot_spacing = 0.3,
-  save_path = NULL,
+  output_dir = NULL,
   export_pdf = FALSE,
   pdf_file_name = "overview_plots.pdf",
   show_all_hulls = FALSE,
@@ -80,8 +80,6 @@ Haug_overview(
 
 \item{plot_spacing}{A numeric value specifying the spacing between plots in the PDF. Default is 0.3.}
 
-\item{save_path}{An optional file path to save the plots. If NULL, the plots are saved in the current working directory.}
-
 \item{export_pdf}{A logical value indicating whether to export the overview as a multi-page PDF. Default is FALSE.}
 
 \item{pdf_file_name}{A character string specifying the name of the exported PDF file if \code{export_pdf = TRUE}. Default is "overview_plots.pdf".}
@@ -91,6 +89,8 @@ Haug_overview(
 \item{show_all_contours}{A logical value indicating whether to show all group contours. Default is FALSE.}
 
 \item{show_table}{A logical value indicating whether to display tables of hull specimen information. Default is FALSE.}
+
+\item{save_path}{An optional file path to save the plots. If NULL, the plots are saved in the current working directory.}
 }
 \value{
 A list containing:

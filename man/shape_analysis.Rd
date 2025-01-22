@@ -7,6 +7,7 @@
 shape_analysis(
   shape_dir,
   norm = TRUE,
+  output_dir = NULL,
   output_file = "shape_analysis.xlsx",
   num_pcs = 10,
   start_point = "left"
@@ -19,7 +20,10 @@ shape_analysis(
 \item{norm}{Logical. Should the Fourier descriptors be normalized? If TRUE, shapes are
 normalized to the first harmonic. If FALSE, shapes are normalized to the longest radius. Default is TRUE.}
 
-\item{output_file}{A character string specifying the path to the Excel file where PCA scores will
+\item{output_dir}{A character string specifying the directory where the Excel file will be saved.
+If NULL, the file will be saved in the working directory.}
+
+\item{output_file}{A character string specifying the name of the Excel file where PCA scores will
 be saved. Default is "shape_analysis.xlsx".}
 
 \item{num_pcs}{Integer. The number of principal components to display in the PC contribution plot. Default is 10.}
@@ -62,6 +66,7 @@ This function requires the following R packages:
 shape_analysis(
   shape_dir = "path/to/shape/directory",
   norm = TRUE,
+  output_dir = "path/to/output/directory",
   output_file = "shape_analysis_results.xlsx",
   num_pcs = 5,
   start_point = "down"
