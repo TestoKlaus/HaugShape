@@ -802,7 +802,7 @@ server <- function(input, output, session) {
       tryCatch({
         req(input$function_select, dataset(), input$x_col, input$y_col)
 
-        # Generate the appropriate plot based on the selected function
+        # Generate the plot dynamically based on user inputs
         plot_to_save <- switch(input$function_select,
                                "Shape Plot" = shape_plot(
                                  data = dataset(),
@@ -833,7 +833,7 @@ server <- function(input, output, session) {
                                  shape_shift = input$shape_shift,
                                  shape_x_adjust = input$shape_x_adjust,
                                  shape_y_adjust = input$shape_y_adjust,
-                                 title = input$plot_title,
+                                 title = ifelse(input$plot_title == "", "", input$plot_title),
                                  x_label = ifelse(input$x_axis_label == "", input$x_col, input$x_axis_label),
                                  y_label = ifelse(input$y_axis_label == "", input$y_col, input$y_axis_label),
                                  tick_size = input$tick_size,
@@ -863,7 +863,7 @@ server <- function(input, output, session) {
                                )
         )
 
-        # Save the plot as a TIFF file
+        # Save the plot to the file
         ggsave(
           filename = file,
           plot = plot_to_save,

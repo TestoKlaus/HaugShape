@@ -144,14 +144,12 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
       )
   }
 
-  # Set parameters for exported plot
+  # Ensure export uses the same settings as the app
   if (export) {
-    axis_linewidth <- 0.5  # Adjust axis linewidth for export
-    point_size <- 1
-    x_label_size <- 3
-    y_label_size <- 3
-    tick_size <- 10
+    # Keep user-defined settings for tick_size, axis_linewidth, etc.
+    message("Exporting plot with user-defined settings.")
   }
+
 
   # Validate that group_col exists in the data if provided
   if (!is.null(group_col) && !group_col %in% colnames(data)) {
@@ -606,19 +604,25 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
   }
 
 
-  # Export the plot if export = TRUE
+  # Dynamically calculate plot dimensions for export
   if (export) {
-    if (is.null(file_path)) {
-      file_path <- paste0(file_name, ".tiff")
-    }
+    # Determine the aspect ratio based on data ranges
+    aspect_ratio <- diff(range(data[[y_col]], na.rm = TRUE)) / diff(range(data[[x_col]], na.rm = TRUE))
 
-    # Calculate width and height in inches based on pixel size and DPI
-    width_in <- 4096 / 600  # 4096 px wide at 600 DPI
-    height_in <- 2160 / 600  # 2160 px high at 600 DPI
+    # Use fixed width and scale height proportionally
+    width_in <- 10  # Fixed width in inches
+    height_in <- width_in * aspect_ratio  # Adjust height based on aspect ratio
 
-    # Save the plot using ggsave with the specified size and DPI
-    ggsave(filename = file_path, plot = plot, device = "tiff", dpi = 600, width = width_in, height = height_in)
-    message(paste("Plot exported to", file_path, "with dimensions 4096x2160 px at 600 DPI"))
+    # Save the plot using ggsave with the calculated dimensions
+    ggsave(
+      filename = file_path,
+      plot = plot,
+      device = "tiff",
+      dpi = 600,  # High resolution for export
+      width = width_in,
+      height = height_in
+    )
+    message(paste("Plot exported to", file_path, "with width:", width_in, "inches, height:", height_in, "inches."))
   }
 
   return(plot)
