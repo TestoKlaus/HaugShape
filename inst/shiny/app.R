@@ -5,6 +5,11 @@ library(dplyr)
 library(shinyFiles)
 library(Momocs)
 library(ggplot2)
+library(DT)
+library(readxl)
+library(fs)
+library(magick)
+
 
 ui <- fluidPage(
   titlePanel("HaugShape Shiny App"),
@@ -48,6 +53,7 @@ ui <- fluidPage(
           actionButton("convert_images", "Convert Images"),
           textOutput("conversion_status"),
           tags$hr(),  # Adds a horizontal line to separate sections
+
           h4("Cut Images in Half (Retain Right Half)"),
           shinyDirButton("cut_input_dir", "Select Input Folder", "Choose a folder with images"),
           textOutput("cut_input_dir_text"),
@@ -56,6 +62,68 @@ ui <- fluidPage(
           actionButton("cut_images", "Process Images"),
           textOutput("cut_status"),
           tags$hr(),  # Adds a horizontal line to separate sections
+
+          h4("Split Image(s) into Two Parts with Preview"),
+          radioButtons(
+            "split_mode",
+            "Select Mode:",
+            choices = c("Single File" = "single", "Batch Processing (Folder)" = "batch"),
+            inline = TRUE
+          ),
+          conditionalPanel(
+            condition = "input.split_mode == 'single'",
+            fileInput("split_single_file", "Select an Image File (PNG/JPG):")
+          ),
+          conditionalPanel(
+            condition = "input.split_mode == 'batch'",
+            shinyDirButton("split_input_dir", "Select Input Folder", "Choose a folder with image files"),
+            textOutput("split_input_dir_text")
+          ),
+          shinyDirButton("split_output_dir", "Select Output Folder", "Choose a folder for processed images"),
+          textOutput("split_output_dir_text"),
+          selectInput("split_direction", "Split Direction:", choices = c("Horizontal" = "horizontal", "Vertical" = "vertical")),
+          sliderInput("split_position", "Split Position (as a fraction):", min = 0, max = 1, value = 0.5, step = 0.01),
+          actionButton("process_split_images", "Split Image(s)"),
+          textOutput("split_status"),
+          conditionalPanel(
+            condition = "input.split_mode == 'single' && !is.null(input.split_single_file)",
+            h4("Preview of Selected Image"),
+            plotOutput("image_preview", height = "400px", width = "100%")  # Image preview with red line
+          ),
+          tags$hr(),
+
+          h4("Morph Two Shapes into an Intermediate Binary Shape"),
+          fileInput("morph_image1", "Select First Grayscale Image (PNG/JPG):"),
+          fileInput("morph_image2", "Select Second Grayscale Image (PNG/JPG):"),
+          shinyDirButton("morph_output_dir", "Select Output Directory", "Choose a folder to save the output"),
+          textOutput("morph_output_dir_text"),
+          textInput("morph_output_name", "Output File Name (e.g., result.jpg):", value = "morphed.jpg"),
+          sliderInput("morph_threshold", "Threshold (0 to 1):", min = 0, max = 1, value = 0.1, step = 0.01),
+          numericInput("morph_gamma", "Gamma Correction (e.g., 1.0):", value = 1.0, min = 0.1, step = 0.1),
+          actionButton("morph_shapes_button", "Morph Shapes"),
+          textOutput("morph_status"),
+          tags$hr(),
+
+          # Previews for the images
+          h4("Image Previews"),
+          fluidRow(
+            column(
+              width = 4,
+              h5("First Image"),
+              uiOutput("dynamic_preview_image1")
+            ),
+            column(
+              width = 4,
+              h5("Second Image"),
+              uiOutput("dynamic_preview_image2")
+            ),
+            column(
+              width = 4,
+              h5("Morphed Image"),
+              uiOutput("dynamic_preview_morphed")
+            )
+          ),
+
           h4("Complete Halved Shapes to Symmetrical Images"),
           shinyDirButton("complete_input_dir", "Select Input Folder", "Choose a folder with halved images"),
           textOutput("complete_input_dir_text"),
@@ -74,10 +142,10 @@ ui <- fluidPage(
           shinyDirButton("output_dir", "Select Output Directory", "Choose a folder for Excel file"),
           textOutput("selected_output_dir"),
           checkboxInput("norm", "Normalize Fourier Descriptors (norm)", value = TRUE),
-          numericInput("num_pcs", "Number of PCs to Display in Contribution Plot:", value = 10, min = 1),
+          numericInput("num_pcs", "Number of PCs to Display in Contribution Plot:", value = 2, min = 1),
           selectInput(
             "start_point",
-            "Starting Point for Normalization:",
+            "Starting Point:",
             choices = c("left", "up", "down", "right"),
             selected = "left"
           ),
@@ -170,6 +238,120 @@ server <- function(input, output, session) {
   })
 
 
+  # Reactive values for folder paths
+  split_input_dir <- reactiveVal(NULL)
+  split_output_dir <- reactiveVal(NULL)
+
+  # Handle input folder selection for batch processing
+  shinyDirChoose(input, "split_input_dir", roots = volumes, session = session)
+  observeEvent(input$split_input_dir, {
+    dir_path <- parseDirPath(volumes, input$split_input_dir)
+    split_input_dir(dir_path)
+    output$split_input_dir_text <- renderText({ paste("Selected Input Folder:", dir_path) })
+  })
+
+  # Handle output folder selection
+  shinyDirChoose(input, "split_output_dir", roots = volumes, session = session)
+  observeEvent(input$split_output_dir, {
+    dir_path <- parseDirPath(volumes, input$split_output_dir)
+    split_output_dir(dir_path)
+    output$split_output_dir_text <- renderText({ paste("Selected Output Folder:", dir_path) })
+  })
+
+  # Process images for splitting
+  observeEvent(input$process_split_images, {
+    # Ensure necessary inputs are provided
+    req(input$split_mode, split_output_dir())
+    if (input$split_mode == "single") {
+      req(input$split_single_file)
+      single_file_path <- input$split_single_file$datapath
+      tryCatch({
+        split_image(
+          image_path = single_file_path,
+          direction = input$split_direction,
+          split_position = input$split_position,
+          output_dir = split_output_dir()
+        )
+        output$split_status <- renderText("Image successfully split and saved!")
+      }, error = function(e) {
+        output$split_status <- renderText(paste("Error:", e$message))
+      })
+    } else if (input$split_mode == "batch") {
+      req(split_input_dir())
+      tryCatch({
+        # Retrieve all image files from the folder
+        image_files <- list.files(
+          split_input_dir(),
+          pattern = "\\.(png|jpg|jpeg)$",
+          full.names = TRUE,
+          ignore.case = TRUE
+        )
+
+        # Ensure there are images to process
+        if (length(image_files) == 0) {
+          output$split_status <- renderText("No valid image files found in the selected folder.")
+          return()
+        }
+
+        # Process each image
+        lapply(image_files, function(file) {
+          split_image(
+            image_path = file,
+            direction = input$split_direction,
+            split_position = input$split_position,
+            output_dir = split_output_dir()
+          )
+        })
+        output$split_status <- renderText("All images successfully split and saved!")
+      }, error = function(e) {
+        output$split_status <- renderText(paste("Error during batch processing:", e$message))
+      })
+    }
+  })
+
+  # Reactive value to hold the uploaded image
+  uploaded_image <- reactiveVal(NULL)
+
+  # Load the image when a file is uploaded
+  observeEvent(input$split_single_file, {
+    req(input$split_single_file)
+    tryCatch({
+      img <- magick::image_read(input$split_single_file$datapath)
+      uploaded_image(img)
+    }, error = function(e) {
+      showNotification("Error loading image: Please ensure it's a valid PNG/JPG file.", type = "error")
+    })
+  })
+
+  # Preview the image with a dynamic red line
+  output$image_preview <- renderPlot({
+    req(uploaded_image(), input$split_position, input$split_direction)
+
+    # Get the uploaded image and its dimensions
+    img <- uploaded_image()
+    img_info <- magick::image_info(img)
+
+    # Extract image width and height
+    img_width <- img_info$width
+    img_height <- img_info$height
+
+    # Plot the image
+    img_array <- as.raster(img)
+    plot(1, type = "n", xlim = c(0, img_width), ylim = c(0, img_height), xlab = "", ylab = "", axes = FALSE, asp = 1)
+    rasterImage(img_array, xleft = 0, ybottom = 0, xright = img_width, ytop = img_height)
+
+    # Draw the red line based on split direction and position
+    if (input$split_direction == "vertical") {
+      split_x <- input$split_position * img_width
+      abline(v = split_x, col = "red", lwd = 2)
+    } else if (input$split_direction == "horizontal") {
+      split_y <- input$split_position * img_height
+      abline(h = split_y, col = "red", lwd = 2)
+    }
+  })
+
+
+
   observeEvent(input$convert_images, {
     req(input_dir(), output_dir())  # Ensure both directories are selected
 
@@ -260,6 +442,143 @@ server <- function(input, output, session) {
     }, error = function(e) {
       # Handle errors and display message
       output$complete_status <- renderText(paste("Error during processing:", e$message))
+    })
+  })
+
+  # Reactive value for the output directory
+  output_dir <- reactiveVal(NULL)
+
+  # Handle output directory selection
+  shinyDirChoose(input, "morph_output_dir", roots = volumes, session = session)
+  observeEvent(input$morph_output_dir, {
+    dir_path <- parseDirPath(volumes, input$morph_output_dir)
+    output_dir(dir_path)
+    output$morph_output_dir_text <- renderText({ paste("Selected Output Directory:", dir_path) })
+  })
+
+  observeEvent(input$morph_shapes_button, {
+    req(input$morph_image1, input$morph_image2, output_dir(), input$morph_output_name)
+
+    # Paths for the input images and output
+    image1_path <- input$morph_image1$datapath
+    image2_path <- input$morph_image2$datapath
+    output_path <- file.path(output_dir(), input$morph_output_name)
+
+    tryCatch({
+      # Call the morph_shapes function
+      morph_shapes(
+        image1_path = image1_path,
+        image2_path = image2_path,
+        output_path = output_path,
+        threshold = input$morph_threshold,
+        gamma = input$morph_gamma
+      )
+      # Read the morphed image for preview
+      morphed_image(magick::image_read(output_path))
+      # Update status on success
+      output$morph_status <- renderText(paste("Morphed image saved to:", output_path))
+    }, error = function(e) {
+      # Handle errors
+      output$morph_status <- renderText(paste("Error during morphing:", e$message))
+      morphed_image(NULL)  # Reset the morphed image preview
+    })
+  })
+
+  # Reactive values for input images
+  input_image1 <- reactive({
+    req(input$morph_image1)
+    magick::image_read(input$morph_image1$datapath)
+  })
+
+  input_image2 <- reactive({
+    req(input$morph_image2)
+    magick::image_read(input$morph_image2$datapath)
+  })
+
+  # Render the first input image
+  output$preview_image1 <- renderPlot({
+    req(input_image1())
+    img <- input_image1()
+    img_info <- magick::image_info(img)
+    img_raster <- as.raster(img)
+    plot(1, type = "n", xlim = c(0, img_info$width), ylim = c(0, img_info$height),
+         axes = FALSE, xlab = "", ylab = "", asp = img_info$height / img_info$width)
+    rasterImage(img_raster, 0, 0, img_info$width, img_info$height)
+  })
+
+  # Render the second input image
+  output$preview_image2 <- renderPlot({
+    req(input_image2())
+    img <- input_image2()
+    img_info <- magick::image_info(img)
+    img_raster <- as.raster(img)
+    plot(1, type = "n", xlim = c(0, img_info$width), ylim = c(0, img_info$height),
+         axes = FALSE, xlab = "", ylab = "", asp = img_info$height / img_info$width)
+    rasterImage(img_raster, 0, 0, img_info$width, img_info$height)
+  })
+
+  # Render the morphed image
+  output$morphed_image_preview <- renderPlot({
+    req(morphed_image())
+    img <- morphed_image()
+    img_info <- magick::image_info(img)
+    img_raster <- as.raster(img)
+    plot(1, type = "n", xlim = c(0, img_info$width), ylim = c(0, img_info$height),
+         axes = FALSE, xlab = "", ylab = "", asp = img_info$height / img_info$width)
+    rasterImage(img_raster, 0, 0, img_info$width, img_info$height)
+  })
+
+  # Dynamic UI for the first image preview
+  output$dynamic_preview_image1 <- renderUI({
+    req(input_image1())
+    img_info <- magick::image_info(input_image1())
+    plotOutput("preview_image1", height = paste0(img_info$height / img_info$width * 300, "px"), width = "100%")
+  })
+
+  # Dynamic UI for the second image preview
+  output$dynamic_preview_image2 <- renderUI({
+    req(input_image2())
+    img_info <- magick::image_info(input_image2())
+    plotOutput("preview_image2", height = paste0(img_info$height / img_info$width * 300, "px"), width = "100%")
+  })
+
+  # Dynamic UI for the morphed image preview
+  output$dynamic_preview_morphed <- renderUI({
+    req(morphed_image())
+    img_info <- magick::image_info(morphed_image())
+    plotOutput("morphed_image_preview", height = paste0(img_info$height / img_info$width * 300, "px"), width = "100%")
+  })
+
+
+  # Reactive value for the morphed image
+  morphed_image <- reactiveVal(NULL)
+
+  # Perform the morphing process and store the resulting image
+  observeEvent(input$morph_shapes_button, {
+    req(input$morph_image1, input$morph_image2, input$morph_output_path)
+
+    # Paths for the input images and output
+    image1_path <- input$morph_image1$datapath
+    image2_path <- input$morph_image2$datapath
+    output_path <- file.path(getwd(), input$morph_output_path)
+
+    tryCatch({
+      # Call the morph_shapes function
+      morph_shapes(
+        image1_path = image1_path,
+        image2_path = image2_path,
+        output_path = output_path,
+        threshold = input$morph_threshold,
+        gamma = input$morph_gamma
+      )
+      # Read the morphed image for preview
+      morphed_image(magick::image_read(output_path))
+      # Update status on success
+      output$morph_status <- renderText(paste("Morphed image saved to:", output_path))
+    }, error = function(e) {
+      # Handle errors
+      output$morph_status <- renderText(paste("Error during morphing:", e$message))
+      morphed_image(NULL)  # Reset the morphed image preview
     })
   })
 

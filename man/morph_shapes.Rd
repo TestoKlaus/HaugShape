@@ -18,11 +18,11 @@ will be saved.}
 
 \item{threshold}{A numeric value between 0 and 1 specifying the cutoff for thresholding
 the gradient. Pixels with gradient values above the threshold are set to white
-(\code{1}), and those below are set to black (\code{0}). Default is \code{0.5}.}
+(\code{1}), and those below are set to black (\code{0}). Default is \code{0.1}.}
 
 \item{gamma}{A numeric value greater than 0 to control the gamma correction applied to
 the gradient. Lower values (\code{< 1}) enhance contrast for darker regions, while
-higher values (\code{> 1}) enhance contrast for lighter regions. Default is \code{1.1}.}
+higher values (\code{> 1}) enhance contrast for lighter regions. Default is \code{1}.}
 }
 \value{
 None. The function saves the resulting binary image to the specified output path.

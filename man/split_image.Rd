@@ -7,6 +7,7 @@
 split_image(
   image_path,
   direction = c("horizontal", "vertical"),
+  split_position = 0.5,
   output_dir = "."
 )
 }
@@ -17,11 +18,12 @@ in a format supported by the \code{magick} package (e.g., JPG, PNG).}
 \item{direction}{A string indicating the direction of the split. Must be one of
 \code{"horizontal"} or \code{"vertical"}. Default is \code{"horizontal"}.
 \itemize{
-\item \code{"horizontal"}: Splits the image into upper and lower halves. The lower half
-is mirrored vertically.
-\item \code{"vertical"}: Splits the image into left and right halves. The left half is
-mirrored horizontally.
+\item \code{"horizontal"}: Splits the image into two parts along a horizontal line.
+\item \code{"vertical"}: Splits the image into two parts along a vertical line.
 }}
+
+\item{split_position}{A numeric value between \code{0} and \code{1}, indicating the
+relative position of the split. Default is \code{0.5} (split at the midpoint).}
 
 \item{output_dir}{A string specifying the directory where the resulting images will
 be saved. Defaults to the current working directory (\code{"."}).}
@@ -31,26 +33,23 @@ This function does not return a value. It saves the processed image halves
 to the specified output directory and prints their paths as messages.
 }
 \description{
-This function splits a given image into two halves either horizontally or vertically,
-processes the halves by optionally mirroring them, and saves the resulting images
-with appropriate names.
+This function splits a given image at a user-specified position, either horizontally or vertically,
+processes the halves by optionally mirroring them, and saves the resulting images with appropriate names.
 }
 \details{
 \itemize{
-\item For a \code{"horizontal"} split, the upper half is saved as \code{"<original_name>_upper_half.<ext>"}
-and the lower half (mirrored vertically) is saved as \code{"<original_name>_lower_half.<ext>"}.
-\item For a \code{"vertical"} split, the left half (mirrored horizontally) is saved as
-\code{"<original_name>_left_half.<ext>"} and the right half is saved as
-\code{"<original_name>_right_half.<ext>"}.
+\item For a \code{"horizontal"} split, the split occurs at \code{split_position * height}.
+\item For a \code{"vertical"} split, the split occurs at \code{split_position * width}.
+\item The function saves the resulting halves with filenames indicating their relative positions.
 }
 }
 \examples{
 \dontrun{
-# Split an image vertically and save to the current directory
-split_image("example.jpg", direction = "vertical", output_dir = ".")
+# Split an image vertically at 30\% of the width
+split_image("example.jpg", direction = "vertical", split_position = 0.3, output_dir = ".")
 
-# Split an image horizontally and save to a specific directory
-split_image("example.jpg", direction = "horizontal", output_dir = "output_images")
+# Split an image horizontally at 75\% of the height
+split_image("example.jpg", direction = "horizontal", split_position = 0.75, output_dir = "output_images")
 }
 
 }
