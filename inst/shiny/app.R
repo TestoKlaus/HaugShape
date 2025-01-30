@@ -41,7 +41,8 @@ ui <- fluidPage(
           uiOutput("overview_results")),  # This dynamically shows all plots
         tabPanel(
           "Image Processing",
-          h4("Convert PNG Files to JPG"),
+          h4("Convert PNG Files to JPG/BMP"),
+          selectInput("output_format", "Select Output Format:", choices = c("jpg", "bmp"), selected = "jpg"),
           shinyDirButton("png_input_dir", "Select PNG Folder", "Choose a folder with PNG files"),
           textOutput("png_input_dir_text"),
           shinyDirButton("jpg_output_dir", "Select Output Folder", "Choose a folder for JPG files"),
@@ -371,23 +372,28 @@ server <- function(input, output, session) {
         height = if (!is.null(input$resize_height) && !is.na(input$resize_height) && input$resize_height > 0) input$resize_height else NULL
       )
 
-      # Process each PNG file and save as JPG
+      # Get the user-selected format (jpg or bmp)
+      selected_format <- input$output_format
+
+      # Process each PNG file and save in the selected format
       lapply(png_files, function(file) {
-        convert_png_to_jpg(
+        convert_png_to_image(
           file_path = file,
           output_dir = output_dir(),
           fixed_dim = fixed_dim,
           padding = input$padding,
-          quality = input$quality
+          quality = input$quality,
+          format = selected_format  # Pass the selected format
         )
       })
 
-      output$conversion_status <- renderText("All PNG images have been successfully converted to JPG!")
+      output$conversion_status <- renderText(paste("All PNG images have been successfully converted to", selected_format, "!"))
     }, error = function(e) {
       # Handle errors and display message
       output$conversion_status <- renderText(paste("Error during conversion:", e$message))
     })
   })
+
 
   observeEvent(input$cut_images, {
     req(cut_input_dir(), cut_output_dir())  # Ensure both directories are selected
