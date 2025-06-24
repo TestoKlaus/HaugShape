@@ -128,27 +128,26 @@ ui <- navbarPage(
   tabPanel("Shape Analysis",
     fluidRow(
       column(4,
-        h4("Run Shape Analysis"),
-        shinyDirButton("shape_analysis_dir", "Select Shape Folder", "Choose a folder with shape files"),
-        textOutput("shape_analysis_dir_text"),
-        shinyDirButton("output_dir", "Select Output Directory", "Choose a folder for Excel file"),
-        textOutput("selected_output_dir"),
-        checkboxInput("norm", "Normalize Fourier Descriptors (norm)", value = TRUE),
-        numericInput("num_pcs", "Number of PCs to Display in Contribution Plot:", value = 2, min = 1),
-        selectInput(
-          "start_point",
-          "Starting Point:",
-          choices = c("left", "up", "down", "right"),
-          selected = "left"
-        ),
-        textInput("output_file", "Output File Name (Excel):", value = "shape_analysis.xlsx"),
-        actionButton("run_analysis", "Run Analysis")
+        h4("Elliptic Fourier Shape Analysis (Momocs)"),
+        shinyDirButton("efourier_shape_dir", "Select Shape Folder", "Choose a folder with shape images (JPG)", multiple = FALSE),
+        textOutput("efourier_shape_dir_text"),
+        shinyDirButton("efourier_output_dir", "Select Output Directory", "Choose a folder for results"),
+        textOutput("efourier_output_dir_text"),
+        numericInput("efourier_nharm", "Number of Harmonics (nharm)", value = 10, min = 1, step = 1),
+        checkboxInput("efourier_norm", "Normalize Descriptors (norm)", value = TRUE),
+        selectInput("efourier_start", "Starting Point", choices = c("left", "up", "down", "right"), selected = "left"),
+        textInput("efourier_output_file", "Output File Name (Excel)", value = "efourier_pca_scores.xlsx"),
+        actionButton("run_efourier_analysis", "Run Elliptic Fourier Analysis")
       ),
       column(8,
-        h4("Summary Output"),
-        verbatimTextOutput("pca_summary"),
+        h4("PCA Summary"),
+        verbatimTextOutput("efourier_pca_summary"),
         h4("PC Contribution Plot"),
-        plotOutput("pc_contrib_plot")
+        plotOutput("efourier_pc_contrib_plot"),
+        downloadButton("download_efourier_pc_contrib", "Download PC Contribution Plot (TIFF)"),
+        h4("PCA Scores (first 10 rows)"),
+        DT::dataTableOutput("efourier_pca_scores_table"),
+        downloadButton("download_efourier_scores", "Download PCA Scores (Excel)")
       )
     )
   )
@@ -605,35 +604,169 @@ server <- function(input, output, session) {
     req(shape_analysis_dir(), output_dir())  # Ensure directories are selected
 
     tryCatch({
-      result <- shape_analysis(
-        shape_dir = shape_analysis_dir(),
-        norm = input$norm,
-        output_dir = output_dir(),
-        output_file = input$output_file,
-        num_pcs = input$num_pcs,
-        start_point = input$start_point
-      )
+      # 1. Import shape images as Out object
+      shape_files <- list.files(shape_analysis_dir(), pattern = "\\.(jpg|jpeg|png)$", full.names = TRUE, ignore.case = TRUE)
+      if (length(shape_files) == 0) stop("No shape images found in the selected folder.")
+      shapes <- Momocs::import_jpg(shape_files)
 
-      output$pca_summary <- renderText({ paste("PCA Summary:\n", result$summary) })
-      output$pc_contrib_plot <- renderPlot({ result$pc_contrib_plot })
+      # 2. Preprocess: center, scale, slide start point
+      shapes <- Momocs::coo_center(shapes)
+      shapes <- Momocs::coo_scale(shapes)
+      shapes <- Momocs::coo_slidedirection(shapes, direction = input$start_point)
 
-      showNotification("Shape analysis completed successfully!", type = "message")
+      # 3. Stack and panel preview (optional, not shown in UI)
+      # output$shape_stack_plot <- renderPlot({ Momocs::stack(shapes) })
+      # output$shape_panel_plot <- renderPlot({ Momocs::panel(shapes) })
+
+      # 4. Elliptic Fourier analysis
+      ef <- Momocs::efourier(shapes, norm = input$norm)
+
+      # 5. PCA
+      pca <- Momocs::PCA(ef)
+
+      # 6. PCcontrib plot
+      pc_contrib_plot <- Momocs::PCcontrib(pca, nax = input$num_pcs, plot = FALSE)
+
+      # 7. Prepare summary
+      pca_summary <- capture.output(summary(pca))
+
+      # 8. Export PC scores to Excel
+      pc_scores <- as.data.frame(pca$x)
+      pc_scores$filename <- Momocs::fac(shapes)$file
+      out_path <- file.path(output_dir(), input$output_file)
+      suppressMessages({
+        if (requireNamespace("writexl", quietly = TRUE)) {
+          writexl::write_xlsx(pc_scores, out_path)
+        } else if (requireNamespace("openxlsx", quietly = TRUE)) {
+          openxlsx::write.xlsx(pc_scores, out_path)
+        } else {
+          stop("Please install either 'writexl' or 'openxlsx' package for Excel export.")
+        }
+      })
+
+      # 9. Show results in UI
+      output$pca_summary <- renderText({ paste(pca_summary, collapse = "\n") })
+      output$pc_contrib_plot <- renderPlot({ pc_contrib_plot })
+
+      showNotification("Shape analysis completed successfully! PC scores exported.", type = "message")
     }, error = function(e) {
       showNotification(paste("Error during analysis:", e$message), type = "error")
     })
   })
 
-  # Initialize reactive for PDF output directory
-  overview_pdf_dir <- reactiveVal(NULL)
+  # --- ELLIPTIC FOURIER SHAPE ANALYSIS TAB LOGIC ---
 
-  # Handle directory selection for Overview PDF
-  shinyDirChoose(input, "overview_pdf_dir", roots = volumes, session = session)
+  # Reactive values for efourier directories and results
+  efourier_shape_dir <- reactiveVal(NULL)
+  efourier_output_dir <- reactiveVal(NULL)
+  efourier_pca_scores <- reactiveVal(NULL)
+  efourier_pc_contrib_plot_obj <- reactiveVal(NULL)
+  efourier_pca_summary <- reactiveVal(NULL)
 
-  observeEvent(input$overview_pdf_dir, {
-    dir_path <- parseDirPath(volumes, input$overview_pdf_dir)
-    overview_pdf_dir(dir_path)
-    output$overview_pdf_dir_text <- renderText({ paste("Selected Output Directory:", dir_path) })
+  # Handle shape folder selection
+  shinyDirChoose(input, "efourier_shape_dir", roots = volumes, session = session)
+  observeEvent(input$efourier_shape_dir, {
+    dir_path <- parseDirPath(volumes, input$efourier_shape_dir)
+    efourier_shape_dir(dir_path)
+    output$efourier_shape_dir_text <- renderText({ paste("Selected Shape Folder:", dir_path) })
   })
+
+  # Handle output directory selection
+  shinyDirChoose(input, "efourier_output_dir", roots = volumes, session = session)
+  observeEvent(input$efourier_output_dir, {
+    dir_path <- parseDirPath(volumes, input$efourier_output_dir)
+    efourier_output_dir(dir_path)
+    output$efourier_output_dir_text <- renderText({ paste("Selected Output Directory:", dir_path) })
+  })
+
+  # Run Elliptic Fourier Analysis
+  observeEvent(input$run_efourier_analysis, {
+    req(efourier_shape_dir(), efourier_output_dir())
+    tryCatch({
+      # 1. Import shape images
+      shape_files <- list.files(efourier_shape_dir(), pattern = "\\.(jpg|jpeg|png)$", full.names = TRUE, ignore.case = TRUE)
+      if (length(shape_files) == 0) stop("No shape images found in the selected folder.")
+      shapes <- Momocs::import_jpg(shape_files)
+
+      # 2. Preprocess
+      shapes <- Momocs::coo_center(shapes)
+      shapes <- Momocs::coo_scale(shapes)
+      shapes <- Momocs::coo_slidedirection(shapes, direction = input$efourier_start)
+
+      # 3. Elliptic Fourier analysis
+      ef <- Momocs::efourier(shapes, nb.h = input$efourier_nharm, norm = input$efourier_norm)
+
+      # 4. PCA
+      pca <- Momocs::PCA(ef)
+
+      # 5. PCcontrib plot (as ggplot object)
+      pc_contrib_plot <- Momocs::PCcontrib(pca, nax = 2, plot = FALSE) # Always 2 PCs for plot
+      efourier_pc_contrib_plot_obj(pc_contrib_plot)
+
+      # 6. Prepare summary
+      pca_summary <- capture.output(summary(pca))
+      efourier_pca_summary(paste(pca_summary, collapse = "\n"))
+
+      # 7. Export PC scores to Excel
+      pc_scores <- as.data.frame(pca$x)
+      pc_scores$filename <- Momocs::fac(shapes)$file
+      efourier_pca_scores(pc_scores)
+      out_path <- file.path(efourier_output_dir(), input$efourier_output_file)
+      suppressMessages({
+        if (requireNamespace("writexl", quietly = TRUE)) {
+          writexl::write_xlsx(pc_scores, out_path)
+        } else if (requireNamespace("openxlsx", quietly = TRUE)) {
+          openxlsx::write.xlsx(pc_scores, out_path)
+        } else {
+          stop("Please install either 'writexl' or 'openxlsx' package for Excel export.")
+        }
+      })
+
+      # 8. Show results in UI
+      output$efourier_pca_summary <- renderText({ efourier_pca_summary() })
+      output$efourier_pc_contrib_plot <- renderPlot({ efourier_pc_contrib_plot_obj() })
+      output$efourier_pca_scores_table <- DT::renderDataTable({ head(efourier_pca_scores(), 10) })
+
+      showNotification("Elliptic Fourier analysis completed! PC scores and plot export available.", type = "message")
+    }, error = function(e) {
+      showNotification(paste("Error during elliptic Fourier analysis:", e$message), type = "error")
+    })
+  })
+
+  # Download handler for PCA scores
+  output$download_efourier_scores <- downloadHandler(
+    filename = function() {
+      input$efourier_output_file
+    },
+    content = function(file) {
+      req(efourier_pca_scores())
+      if (requireNamespace("writexl", quietly = TRUE)) {
+        writexl::write_xlsx(efourier_pca_scores(), file)
+      } else if (requireNamespace("openxlsx", quietly = TRUE)) {
+        openxlsx::write.xlsx(efourier_pca_scores(), file)
+      } else {
+        stop("Please install either 'writexl' or 'openxlsx' package for Excel export.")
+      }
+    }
+  )
+
+  # Download handler for PC contribution plot
+  output$download_efourier_pc_contrib <- downloadHandler(
+    filename = function() {
+      "efourier_pc_contrib_plot.tiff"
+    },
+    content = function(file) {
+      req(efourier_pc_contrib_plot_obj())
+      ggsave(
+        filename = file,
+        plot = efourier_pc_contrib_plot_obj(),
+        device = "tiff",
+        dpi = 600,
+        width = 8,
+        height = 6
+      )
+    }
+  )
 
   # Update column choices for Overview Plot
   observeEvent(dataset(), {
@@ -792,7 +925,7 @@ server <- function(input, output, session) {
 
   output$download_plot <- downloadHandler(
     filename = function() {
-      paste0(input$function_select, "_output", ".tiff")  # File name based on the selected plot type
+      paste0(input$function_select, "_output", ".tiff")
     },
     content = function(file) {
       tryCatch({
@@ -859,14 +992,16 @@ server <- function(input, output, session) {
                                )
         )
 
-        # Save the plot to the file
+        # Export: width fixed at 4000 px, height is user-defined ratio * 4000 px, dpi = 300
+        width_px <- 4000
+        height_px <- as.numeric(input$export_plot_height_ratio) * 4000
         ggsave(
           filename = file,
           plot = plot_to_save,
           device = "tiff",
-          dpi = 600,
-          width = 10,
-          height = 7
+          dpi = 300,
+          width = width_px / 300,   # inches
+          height = height_px / 300  # inches
         )
 
         showNotification("Plot successfully saved!", type = "message")
@@ -886,579 +1021,4 @@ server <- function(input, output, session) {
   })
 
 
-  # Observe the Map Shapes button click
-  observeEvent(input$map_shapes, {
-    req(dataset(), input$shape_id_col, shape_directory())
-
-    # Get the directory path
-    dir_path <- normalizePath(shape_directory(), winslash = "/", mustWork = FALSE)
-
-    # Call the function and update the dataset
-    updated_data <- map_shapes_to_data(dataset(), id_col = input$shape_id_col, shape_folder = dir_path)
-
-    # Update the reactive dataset
-    dataset(updated_data)
-  })
-
-  observeEvent(input$map_shapes, {
-    req(dataset(), input$shape_id_col, shape_directory())
-
-    # Validate the folder path
-    dir_path <- normalizePath(shape_directory(), winslash = "/", mustWork = FALSE)
-
-    tryCatch({
-      shiny::withProgress({
-        setProgress(0.1, message = "Processing shapes...")
-
-        # Call the function
-        updated_data <- map_shapes_to_data(dataset(), id_col = input$shape_id_col, shape_folder = dir_path)
-
-        setProgress(0.8, message = "Updating dataset...")
-        dataset(updated_data)  # Update reactive dataset
-
-        setProgress(1, message = "Mapping complete!")
-        output$shape_mapping_status <- renderText("Shapes successfully mapped!")
-      })
-    }, error = function(e) {
-      output$shape_mapping_status <- renderText(paste("Error during shape mapping:", e$message))
-    })
-  })
-
-
-  # Update group values dynamically when group_col changes
-  observeEvent(input$group_col, {
-    req(dataset(), input$group_col)
-    groups <- unique(dataset()[[input$group_col]])
-
-    # Automatically select all groups for group_vals and show_hull_for_groups
-    updateSelectInput(session, "group_vals", choices = c("All", groups), selected = groups)
-    updateSelectInput(session, "show_hull_for_groups", choices = groups, selected = groups)
-  })
-
-  # Update hull style values dynamically when show_hull_for_groups changes
-  observeEvent(input$show_hull_for_groups, {
-    req(input$group_col, input$show_hull_for_groups)
-
-    # Get the selected groups
-    selected_groups <- input$show_hull_for_groups
-
-    # Regenerate the dynamic UI for hull styles
-    output$dynamic_hull_fill <- renderUI({
-      lapply(seq_along(selected_groups), function(i) {
-        colourpicker::colourInput(
-          inputId = paste0("hull_fill_", i),
-          label = paste("Hull Fill for Group", selected_groups[i]),
-          value = scales::hue_pal()(length(selected_groups))[i]  # Default color
-        )
-      })
-    })
-
-    output$dynamic_hull_color <- renderUI({
-      lapply(seq_along(selected_groups), function(i) {
-        colourpicker::colourInput(
-          inputId = paste0("hull_color_", i),
-          label = paste("Hull Border Color for Group", selected_groups[i]),
-          value = "black"  # Default border color
-        )
-      })
-    })
-  })
-
-  observeEvent(input$group_col, {
-    req(dataset(), input$group_col)
-    groups <- unique(dataset()[[input$group_col]])
-
-    updateSelectInput(session, "show_contours_for_groups", choices = groups, selected = groups[1])
-  })
-
-  observeEvent(input$group_vals, {
-    req(input$group_vals)
-
-    # Get selected groups or all groups
-    groups <- if ("All" %in% input$group_vals) {
-      unique(dataset()[[input$group_col]])
-    } else {
-      input$group_vals
-    }
-
-    # Initialize default point styles for all groups
-    lapply(seq_along(groups), function(i) {
-      group <- groups[i]
-
-      # Update point color
-      if (is.null(input[[paste0("point_color_", i)]])) {
-        updateColourInput(
-          session, paste0("point_color_", i),
-          value = scales::hue_pal()(length(groups))[i]  # Default color
-        )
-      }
-
-      # Update point fill
-      if (is.null(input[[paste0("point_fill_", i)]])) {
-        updateColourInput(
-          session, paste0("point_fill_", i),
-          value = scales::hue_pal()(length(groups))[i]  # Default fill
-        )
-      }
-
-      # Update point size
-      if (is.null(input[[paste0("point_size_", i)]])) {
-        updateNumericInput(
-          session, paste0("point_size_", i),
-          value = 2  # Default size
-        )
-      }
-
-      # Update point shape
-      if (is.null(input[[paste0("point_shape_", i)]])) {
-        updateSelectInput(
-          session, paste0("point_shape_", i),
-          selected = 21  # Default shape
-        )
-      }
-    })
-  })
-
-  # Dynamic UI for point colors
-  output$dynamic_point_color <- renderUI({
-    req(input$group_vals)  # Ensure groups are selected
-    groups <- input$group_vals
-
-    lapply(seq_along(groups), function(i) {
-      colourpicker::colourInput(
-        inputId = paste0("point_color_", i),
-        label = paste("Point Border Color for Group", groups[i]),
-        value = scales::hue_pal()(length(groups))[i]  # Default color
-      )
-    })
-  })
-
-  # Dynamic UI for point fills
-  output$dynamic_point_fill <- renderUI({
-    req(input$group_vals)  # Ensure groups are selected
-    groups <- input$group_vals
-
-    lapply(seq_along(groups), function(i) {
-      colourpicker::colourInput(
-        inputId = paste0("point_fill_", i),
-        label = paste("Point Fill for Group", groups[i]),
-        value = scales::hue_pal()(length(groups))[i]  # Default fill
-      )
-    })
-  })
-
-  # Dynamic UI for point sizes
-  output$dynamic_point_size <- renderUI({
-    req(input$group_vals)  # Ensure groups are selected
-    groups <- input$group_vals
-
-    tagList(
-      lapply(seq_along(groups), function(i) {
-        group <- groups[i]
-        numericInput(
-          inputId = paste0("point_size_", i),
-          label = paste("Point Size for Group", group),
-          value = 2,  # Default size
-          min = 0.1, step = 0.1
-        )
-      })
-    )
-  })
-
-  # Dynamic UI for point shapes
-  output$dynamic_point_shape <- renderUI({
-    req(input$group_vals)  # Ensure groups are selected
-    groups <- input$group_vals
-
-    tagList(
-      lapply(seq_along(groups), function(i) {
-        group <- groups[i]
-        selectInput(
-          inputId = paste0("point_shape_", i),
-          label = paste("Point Shape for Group", group),
-          choices = c(
-            "Circle (21)" = 21,
-            "Square (22)" = 22,
-            "Diamond (23)" = 23,
-            "Triangle (up, 24)" = 24,
-            "Triangle (down, 25)" = 25
-          ),
-          selected = 21  # Default shape
-        )
-      })
-    )
-  })
-
-  output$dynamic_hull_fill <- renderUI({
-    req(input$group_vals)
-    group_vals <- if ("All" %in% input$group_vals) {
-      unique(dataset()[[input$group_col]])
-    } else {
-      input$group_vals
-    }
-
-    lapply(seq_along(group_vals), function(i) {
-      colourpicker::colourInput(
-        inputId = paste0("hull_fill_", i),
-        label = paste("Hull Fill for Group", group_vals[i]),
-        value = scales::hue_pal()(length(group_vals))[i]
-      )
-    })
-  })
-
-  output$dynamic_hull_color <- renderUI({
-    req(input$group_vals)
-    group_vals <- if ("All" %in% input$group_vals) {
-      unique(dataset()[[input$group_col]])
-    } else {
-      input$group_vals
-    }
-
-    lapply(seq_along(group_vals), function(i) {
-      colourpicker::colourInput(
-        inputId = paste0("hull_color_", i),
-        label = paste("Hull Border Color for Group", group_vals[i]),
-        value = "black"
-      )
-    })
-  })
-
-
-  # Dynamic UI for function-specific inputs
-  output$dynamic_ui <- renderUI({
-    req(input$function_select)
-    switch(input$function_select,
-           "Shape Plot" = tagList(
-             selectInput("x_col", "Select X-Axis Column", choices = NULL),
-             selectInput("y_col", "Select Y-Axis Column", choices = NULL),
-             selectInput("group_col", "Select Grouping Column", choices = NULL),
-             selectInput("group_vals", "Select Groups to Show", multiple = TRUE, choices = NULL),
-
-             # Inside output$dynamic_ui (under "Shape Plot" tagList)
-             checkboxInput("toggle_plot_settings", "Show Plot & Coordinate Settings Menu", value = FALSE),
-             conditionalPanel(
-               condition = "input.toggle_plot_settings == true",  # Only show if checkbox is checked
-               h4("Plot & Coordinate Settings"),
-
-               # Title and axis labels
-               textInput("plot_title", "Plot Title", value = ""),
-               textInput("x_axis_label", "X-Axis Label", value = ""),
-               textInput("y_axis_label", "Y-Axis Label", value = ""),
-
-               # Font sizes
-               numericInput("title_size", "Title Font Size", value = 24, min = 1),
-               numericInput("x_label_size", "X-Label Font Size", value = 5, min = 1),
-               numericInput("y_label_size", "Y-Label Font Size", value = 5, min = 1),
-
-               # Tick settings
-               numericInput("tick_size", "Tick Font Size", value = 15, min = 1),
-               numericInput("tick_length", "Tick Length", value = 0.005, min = 0, step = 0.001),
-
-               # Axis label adjustments
-               numericInput("x_label_adjust_x", "X-Label Horizontal Adjust", value = 0),
-               numericInput("x_label_adjust_y", "X-Label Vertical Adjust", value = 0),
-               numericInput("y_label_adjust_x", "Y-Label Horizontal Adjust", value = 0),
-               numericInput("y_label_adjust_y", "Y-Label Vertical Adjust", value = 0),
-
-               # Axis and plot style settings
-               numericInput("axis_linewidth", "Axis Line Width", value = 1, min = 0.1, step = 0.1),
-               selectInput(
-                 "plot_style",
-                 "Plot Style",
-                 choices = c("Haug", "inverted_Haug", "publication"),
-                 selected = "Haug"
-               ),
-               checkboxInput("rotate_y_label", "Rotate Y-Axis Label", value = FALSE),
-               checkboxInput("show_label_text_fields", "Show Label Borders", value = TRUE)
-             ),
-
-             # Point Styles Section with toggle visibility
-             checkboxInput("toggle_point_styles", "Show Point Styles Menu", value = TRUE),
-             conditionalPanel(
-               condition = "input.toggle_point_styles == true",  # Only show if checkbox is checked
-               h4("Point Styles"),
-               uiOutput("dynamic_point_fill"),  # Dynamic color pickers for point fill
-               uiOutput("dynamic_point_color"),  # Dynamic color pickers for point border
-               uiOutput("dynamic_point_size"),  # Dynamic inputs for point sizes
-               uiOutput("dynamic_point_shape")  # Dynamic inputs for point shapes
-             ),
-
-             # Hull Styles Section based on show_hulls
-             checkboxInput("show_hulls", "Show Convex Hulls", value = FALSE),
-             conditionalPanel(
-               condition = "input.show_hulls == true",  # Show only if 'Show Convex Hulls' is checked
-               h4("Hull Styles"),
-               selectInput("show_hull_for_groups", "Select Hulls to Show", multiple = TRUE, choices = NULL),
-               uiOutput("dynamic_hull_fill"),  # Dynamic color pickers for hull fill
-               uiOutput("dynamic_hull_color"),  # Dynamic color pickers for hull border
-               selectInput(
-                 "hull_linetype",
-                 "Hull Line Type",
-                 choices = c("solid", "dashed", "dotted", "dotdash", "longdash", "twodash"),
-                 selected = "solid"
-               ),
-               sliderInput("hull_alpha", "Hull Transparency (Alpha)", min = 0, max = 1, value = 0.1, step = 0.1)
-             ),
-
-             # Shape Styles Section with toggle visibility
-             checkboxInput("show_shapes", "Show Shapes", value = FALSE),
-             conditionalPanel(
-               condition = "input.show_shapes == true",  # Only show if checkbox is checked
-               h4("Shape Styles"),
-
-               # Groups for shapes
-               selectInput(
-                 "show_shapes_for_groups",
-                 "Select Groups for Shapes",
-                 multiple = TRUE,
-                 choices = NULL
-               ),
-
-               # Shape size
-               numericInput(
-                 "shape_size",
-                 "Shape Size",
-                 value = 0.01,
-                 min = 0.001,
-                 step = 0.001
-               ),
-
-               # Shape shift
-               numericInput(
-                 "shape_shift",
-                 "Shape Shift",
-                 value = 0.1,
-                 min = 0,
-                 step = 0.01
-               ),
-
-               # Adjustments for shape positions
-               numericInput(
-                 "shape_x_adjust",
-                 "Shape X-Adjust",
-                 value = 0,
-                 step = 0.01
-               ),
-               numericInput(
-                 "shape_y_adjust",
-                 "Shape Y-Adjust",
-                 value = 0,
-                 step = 0.01
-               )
-             ),
-
-
-             # Contours Section
-             checkboxInput("show_contours", "Show Contours", value = FALSE),
-             conditionalPanel(
-               condition = "input.show_contours == true",
-               h4("Contours Settings"),
-
-               # Group selection for contours
-               selectInput(
-                 "show_contours_for_groups",
-                 "Select Group for Contours",
-                 multiple = FALSE,
-                 choices = NULL
-               ),
-
-               # Contour line color
-               colourpicker::colourInput(
-                 inputId = "contour_colors",
-                 label = "Contour Line Color",
-                 value = "black"
-               ),
-
-               # Contour line width
-               numericInput(
-                 inputId = "contour_linewidth",
-                 label = "Contour Line Width",
-                 value = 0.5,
-                 min = 0.1,
-                 step = 0.1
-               )
-             )
-           ),
-
-           "Cluster Plot" = tagList(
-             selectInput("x_col", "Select X-Axis Column", choices = NULL),
-             selectInput("y_col", "Select Y-Axis Column", choices = NULL),
-             sliderInput("num_clusters", "Number of Clusters", min = 2, max = 10, value = 3),
-             selectInput("clustering_method", "Clustering Method",
-                         choices = c("kmeans", "hierarchical", "distance_threshold")),
-             numericInput("distance_threshold", "Distance Threshold (if applicable)", value = NULL, min = 0, step = 0.1),
-
-             # Shape Styles Section
-             checkboxInput("show_shapes", "Show Shapes", value = FALSE),
-             conditionalPanel(
-               condition = "input.show_shapes == true",  # Only show if checkbox is checked
-               h4("Shape Styles"),
-
-               # Shape parameters
-               numericInput("shape_size", "Shape Size", value = 0.01, min = 0.001, step = 0.001),
-               numericInput("shape_x_adjust", "Shape X-Adjust", value = 0, step = 0.01),
-               numericInput("shape_y_adjust", "Shape Y-Adjust", value = 0, step = 0.01)
-             )
-           ),
-
-           "Elbow Plot" = tagList(
-             selectInput("x_col", "Select X-Axis Column", choices = NULL),
-             selectInput("y_col", "Select Y-Axis Column", choices = NULL),
-             numericInput("max_k", "Maximum Number of Clusters", value = 10, min = 2)
-           ),
-           "Overview Plot" = tagList(
-             h4("Overview Plot Settings"),
-             selectizeInput(
-               inputId = "overview_cols",
-               label = "Select Columns for Overview (must be even number up to 20)",
-               choices = NULL,  # Dynamically updated
-               multiple = TRUE,
-               options = list(maxItems = 20)
-             ),
-             selectInput(
-               inputId = "overview_group_col",
-               label = "Select Grouping Column",
-               choices = NULL
-             ),
-             selectInput(
-               inputId = "overview_group_vals",
-               label = "Select Groups to Include (Optional)",
-               choices = NULL,
-               multiple = TRUE
-             ),
-             # In the "Overview Plot" tabPanel
-             checkboxInput("overview_export_pdf", "Export Overview to PDF", value = FALSE),
-             conditionalPanel(
-               condition = "input.overview_export_pdf == true",
-               tagList(
-                 textInput("overview_pdf_name", "PDF File Name", value = "overview_plots.pdf"),
-                 shinyDirButton("overview_pdf_dir", "Select Output Directory for PDF", "Choose a folder for PDF"),
-                 textOutput("overview_pdf_dir_text"),  # To display the selected directory
-                 checkboxInput("overview_show_all_hulls", "Show All Hulls (in PDF)", value = FALSE),
-                 checkboxInput("overview_show_all_contours", "Show All Contours (in PDF)", value = FALSE),
-                 checkboxInput("overview_show_table", "Show Specimen Table (in PDF)", value = FALSE)
-               )
-             ),
-
-             actionButton("generate_overview", "Generate Overview Plot")
-           )
-    )
-  })
-
-  # Output Plot
-  output$output_plot <- renderPlot({
-    req(input$function_select, dataset(), input$x_col, input$y_col)
-
-    # Determine group_vals based on user selection
-    group_vals <- if ("All" %in% input$group_vals) {
-      unique(dataset()[[input$group_col]])  # Include all groups
-    } else {
-      input$group_vals  # Use selected groups
-    }
-
-    shapes_for_groups <- if ("All" %in% input$show_shapes_for_groups) {
-      unique(dataset()[[input$group_col]])
-    } else {
-      input$show_shapes_for_groups
-    }
-
-    # Extract dynamic point styles
-    point_color <- sapply(seq_along(group_vals), function(i) {
-      input[[paste0("point_color_", i)]]
-    })
-
-    point_fill <- sapply(seq_along(group_vals), function(i) {
-      input[[paste0("point_fill_", i)]]
-    })
-
-    point_size <- sapply(seq_along(group_vals), function(i) {
-      input[[paste0("point_size_", i)]]
-    })
-
-    point_shape <- as.numeric(sapply(seq_along(group_vals), function(i) {
-      input[[paste0("point_shape_", i)]]
-    }))
-
-    # Extract dynamic hull styles
-    hull_fill <- sapply(seq_along(group_vals), function(i) {
-      input[[paste0("hull_fill_", i)]]
-    })
-
-    hull_color <- sapply(seq_along(group_vals), function(i) {
-      input[[paste0("hull_color_", i)]]
-    })
-
-    switch(input$function_select,
-           # Inside output$output_plot renderPlot (under "Shape Plot" in the switch statement)
-           "Shape Plot" = shape_plot(
-             data = dataset(),
-             x_col = input$x_col,
-             y_col = input$y_col,
-             group_col = input$group_col,
-             group_vals = group_vals,
-             point_color = point_color,
-             point_fill = point_fill,
-             point_size = point_size,
-             point_shape = point_shape,
-             show_hulls = input$show_hulls,
-             show_hull_for_groups = input$show_hull_for_groups,
-             hull_fill = hull_fill,
-             hull_color = hull_color,
-             hull_linetype = input$hull_linetype,
-             hull_alpha = input$hull_alpha,
-
-             # Shape parameters
-             show_shapes = input$show_shapes,
-             show_shapes_for_groups = shapes_for_groups,
-             shape_size = input$shape_size,
-             shape_shift = input$shape_shift,
-             shape_x_adjust = input$shape_x_adjust,
-             shape_y_adjust = input$shape_y_adjust,
-
-             # Plot & Coordinate Settings
-             title = ifelse(input$plot_title == "", "", input$plot_title),  # Default to empty string for title
-             x_label = ifelse(input$x_axis_label == "", input$x_col, input$x_axis_label),  # Default to x_col value
-             y_label = ifelse(input$y_axis_label == "", input$y_col, input$y_axis_label),  # Default to y_col value
-             title_size = input$title_size,
-             x_label_size = input$x_label_size,
-             y_label_size = input$y_label_size,
-             tick_size = input$tick_size,
-             tick_length = input$tick_length,
-             x_label_adjust_x = input$x_label_adjust_x,
-             x_label_adjust_y = input$x_label_adjust_y,
-             y_label_adjust_x = input$y_label_adjust_x,
-             y_label_adjust_y = input$y_label_adjust_y,
-             axis_linewidth = input$axis_linewidth,
-             plot_style = input$plot_style,
-             rotate_y_label = input$rotate_y_label,
-             show_label_text_fields = input$show_label_text_fields
-           ),
-
-           "Cluster Plot" = cluster_plot(
-             data = dataset(),
-             x_col = input$x_col,
-             y_col = input$y_col,
-             method = input$clustering_method,
-             k = input$num_clusters,
-             distance_threshold = input$distance_threshold,
-             show_shapes = input$show_shapes,
-             shape_size = input$shape_size,
-             shape_x_adjust = input$shape_x_adjust,
-             shape_y_adjust = input$shape_y_adjust,
-             title = input$plot_title,
-             x_label = ifelse(input$x_axis_label == "", input$x_col, input$x_axis_label),
-             y_label = ifelse(input$y_axis_label == "", input$y_col, input$y_axis_label)
-           ),
-
-           "Elbow Plot" = elbow_plot(
-             data = dataset(),
-             x_col = input$x_col,
-             y_col = input$y_col,
-             max_k = input$max_k
-           )
-    )
-  })
-
-}
-
-shinyApp(ui, server)
+  # Observe the Map Shapes button
