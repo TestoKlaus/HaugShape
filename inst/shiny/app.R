@@ -1022,3 +1022,44 @@ server <- function(input, output, session) {
 
 
   # Observe the Map Shapes button
+  observeEvent(input$map_shapes, {
+    req(dataset(), input$shape_id_col, shape_directory())
+
+    # Extract the selected ID column
+    id_col <- input$shape_id_col
+
+    tryCatch({
+      # 1. Read and preprocess the data
+      data <- dataset() %>%
+        select(all_of(id_col)) %>%
+        distinct() %>%
+        mutate(across(everything(), ~ trimws(as.character(.))))  # Trim whitespace
+
+      # 2. List and preprocess shape files
+      shape_files <- list.files(shape_directory(), pattern = "\\.(jpg|jpeg|png)$", full.names = TRUE, ignore.case = TRUE)
+      shape_files <- basename(shape_files)  # Keep only file names
+
+      # 3. Match shapes to data
+      matched_shapes <- data %>%
+        mutate(shape_file = paste0(!!sym(id_col), ".jpg")) %>%  # Assuming shape files are in JPG format
+        filter(shape_file %in% shape_files)
+
+      # 4. Update the mapping status
+      output$shape_mapping_status <- renderText({
+        paste("Mapped", nrow(matched_shapes), "shapes to data out of", nrow(data), "total IDs.")
+      })
+
+      # 5. Save the mapping result as a CSV file
+      output_file <- file.path(shape_directory(), "shape_mapping_result.csv")
+      write.csv(matched_shapes, output_file, row.names = FALSE)
+
+      showNotification(paste("Shape mapping completed. Results saved to:", output_file), type = "message")
+    }, error = function(e) {
+      showNotification(paste("Error during shape mapping:", e$message), type = "error")
+    })
+  })
+
+  # --- END OF SERVER LOGIC ---
+}
+
+shinyApp(ui, server)
