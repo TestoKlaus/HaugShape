@@ -10,155 +10,145 @@ library(readxl)
 library(fs)
 library(magick)
 
-
-ui <- fluidPage(
-  titlePanel("HaugShape Shiny App"),
-  sidebarLayout(
-    sidebarPanel(
-      downloadButton("download_plot", "Download Plot"),
-
-      fileInput("datafile", "Upload Your Data (Excel)"),
-      selectInput(
-        "function_select",
-        "Choose Function to Use",
-        choices = c("Shape Plot", "Cluster Plot", "Elbow Plot",  "Overview Plot"),
-        selected = "Shape Plot"
+ui <- navbarPage(
+  "HaugShape Shiny App",
+  tabPanel("Data & Mapping",
+    fluidRow(
+      column(4,
+        fileInput("datafile", "Upload Your Data (Excel)"),
+        shinyDirButton("shape_dir", "Select Shape Folder", "Please select a folder"),
+        textOutput("selected_dir"),
+        selectInput("shape_id_col", "Select ID Column for Shapes", choices = NULL),
+        actionButton("map_shapes", "Map Shapes to Data"),
+        textOutput("shape_mapping_status")
       ),
-      uiOutput("dynamic_ui"),
-      h3("Shapes Configuration"),
-      shinyDirButton("shape_dir", "Select Shape Folder", "Please select a folder"),
-      textOutput("selected_dir"),
-      selectInput("shape_id_col", "Select ID Column for Shapes", choices = NULL),
-      actionButton("map_shapes", "Map Shapes to Data"),
-      textOutput("shape_mapping_status")
-    ),
-    mainPanel(
-      tabsetPanel(
-        tabPanel("Data Preview", DT::dataTableOutput("data_preview")),
-        tabPanel("Output Plot", plotOutput("output_plot")),
-        tabPanel(
-          "Overview Results",
-          uiOutput("overview_results")),  # This dynamically shows all plots
-        tabPanel(
-          "Image Processing",
-          h4("Convert PNG Files to JPG/BMP"),
-          selectInput("output_format", "Select Output Format:", choices = c("jpg", "bmp"), selected = "jpg"),
-          shinyDirButton("png_input_dir", "Select PNG Folder", "Choose a folder with PNG files"),
-          textOutput("png_input_dir_text"),
-          shinyDirButton("jpg_output_dir", "Select Output Folder", "Choose a folder for JPG files"),
-          textOutput("jpg_output_dir_text"),
-          numericInput("resize_width", "Resize Width (pixels, optional):", value = NULL, min = 1),
-          numericInput("resize_height", "Resize Height (pixels, optional):", value = NULL, min = 1),
-          numericInput("padding", "Padding (pixels):", value = 10, min = 0),
-          numericInput("quality", "JPG Quality (0-100):", value = 100, min = 0, max = 100),
-          actionButton("convert_images", "Convert Images"),
-          textOutput("conversion_status"),
-          tags$hr(),  # Adds a horizontal line to separate sections
-
-          h4("Cut Images in Half (Retain Right Half)"),
-          shinyDirButton("cut_input_dir", "Select Input Folder", "Choose a folder with images"),
-          textOutput("cut_input_dir_text"),
-          shinyDirButton("cut_output_dir", "Select Output Folder", "Choose a folder for processed images"),
-          textOutput("cut_output_dir_text"),
-          actionButton("cut_images", "Process Images"),
-          textOutput("cut_status"),
-          tags$hr(),  # Adds a horizontal line to separate sections
-
-          h4("Split Image(s) into Two Parts with Preview"),
-          radioButtons(
-            "split_mode",
-            "Select Mode:",
-            choices = c("Single File" = "single", "Batch Processing (Folder)" = "batch"),
-            inline = TRUE
-          ),
-          conditionalPanel(
-            condition = "input.split_mode == 'single'",
-            fileInput("split_single_file", "Select an Image File (PNG/JPG):")
-          ),
-          conditionalPanel(
-            condition = "input.split_mode == 'batch'",
-            shinyDirButton("split_input_dir", "Select Input Folder", "Choose a folder with image files"),
-            textOutput("split_input_dir_text")
-          ),
-          shinyDirButton("split_output_dir", "Select Output Folder", "Choose a folder for processed images"),
-          textOutput("split_output_dir_text"),
-          selectInput("split_direction", "Split Direction:", choices = c("Horizontal" = "horizontal", "Vertical" = "vertical")),
-          sliderInput("split_position", "Split Position (as a fraction):", min = 0, max = 1, value = 0.5, step = 0.01),
-          actionButton("process_split_images", "Split Image(s)"),
-          textOutput("split_status"),
-          conditionalPanel(
-            condition = "input.split_mode == 'single' && !is.null(input.split_single_file)",
-            h4("Preview of Selected Image"),
-            plotOutput("image_preview", height = "400px", width = "100%")  # Image preview with red line
-          ),
-          tags$hr(),
-
-          h4("Morph Two Shapes into an Intermediate Binary Shape"),
-          fileInput("morph_image1", "Select First Grayscale Image (PNG/JPG):"),
-          fileInput("morph_image2", "Select Second Grayscale Image (PNG/JPG):"),
-          shinyDirButton("morph_output_dir", "Select Output Directory", "Choose a folder to save the output"),
-          textOutput("morph_output_dir_text"),
-          textInput("morph_output_name", "Output File Name (e.g., result.jpg):", value = "morphed.jpg"),
-          sliderInput("morph_threshold", "Threshold (0 to 1):", min = 0, max = 1, value = 0.1, step = 0.01),
-          numericInput("morph_gamma", "Gamma Correction (e.g., 1.0):", value = 1.0, min = 0.1, step = 0.1),
-          actionButton("morph_shapes_button", "Morph Shapes"),
-          textOutput("morph_status"),
-          tags$hr(),
-
-          # Previews for the images
-          h4("Image Previews"),
-          fluidRow(
-            column(
-              width = 4,
-              h5("First Image"),
-              uiOutput("dynamic_preview_image1")
-            ),
-            column(
-              width = 4,
-              h5("Second Image"),
-              uiOutput("dynamic_preview_image2")
-            ),
-            column(
-              width = 4,
-              h5("Morphed Image"),
-              uiOutput("dynamic_preview_morphed")
-            )
-          ),
-
-          h4("Complete Halved Shapes to Symmetrical Images"),
-          shinyDirButton("complete_input_dir", "Select Input Folder", "Choose a folder with halved images"),
-          textOutput("complete_input_dir_text"),
-          shinyDirButton("complete_output_dir", "Select Output Folder", "Choose a folder for completed images"),
-          textOutput("complete_output_dir_text"),
-          actionButton("complete_shapes", "Complete Halved Shapes"),
-          textOutput("complete_status"),
-          tags$hr()  # Adds a horizontal line to separate sections
-
+      column(8,
+        DT::dataTableOutput("data_preview")
+      )
+    )
+  ),
+  tabPanel("Plotting",
+    sidebarLayout(
+      sidebarPanel(
+        selectInput(
+          "function_select",
+          "Choose Function to Use",
+          choices = c("Shape Plot", "Cluster Plot", "Elbow Plot", "Overview Plot"),
+          selected = "Shape Plot"
         ),
-        tabPanel(
-          "Shape Analysis",
-          h4("Run Shape Analysis"),
-          shinyDirButton("shape_analysis_dir", "Select Shape Folder", "Choose a folder with shape files"),
-          textOutput("shape_analysis_dir_text"),
-          shinyDirButton("output_dir", "Select Output Directory", "Choose a folder for Excel file"),
-          textOutput("selected_output_dir"),
-          checkboxInput("norm", "Normalize Fourier Descriptors (norm)", value = TRUE),
-          numericInput("num_pcs", "Number of PCs to Display in Contribution Plot:", value = 2, min = 1),
-          selectInput(
-            "start_point",
-            "Starting Point:",
-            choices = c("left", "up", "down", "right"),
-            selected = "left"
-          ),
-          textInput("output_file", "Output File Name (Excel):", value = "shape_analysis.xlsx"),
-          actionButton("run_analysis", "Run Analysis"),
-          tags$hr(),
-          h4("Summary Output"),
-          verbatimTextOutput("pca_summary"),
-          tags$hr(),
-          h4("PC Contribution Plot"),
-          plotOutput("pc_contrib_plot")
+        uiOutput("dynamic_ui"),
+        downloadButton("download_plot", "Download Plot")
+      ),
+      mainPanel(
+        plotOutput("output_plot"),
+        tabsetPanel(
+          tabPanel("Overview Results", uiOutput("overview_results"))
         )
+      )
+    )
+  ),
+  tabPanel("Image Processing",
+    tabsetPanel(
+      tabPanel("Convert PNG to JPG/BMP",
+        selectInput("output_format", "Select Output Format:", choices = c("jpg", "bmp"), selected = "jpg"),
+        shinyDirButton("png_input_dir", "Select PNG Folder", "Choose a folder with PNG files"),
+        textOutput("png_input_dir_text"),
+        shinyDirButton("jpg_output_dir", "Select Output Folder", "Choose a folder for JPG files"),
+        textOutput("jpg_output_dir_text"),
+        numericInput("resize_width", "Resize Width (pixels, optional):", value = NULL, min = 1),
+        numericInput("resize_height", "Resize Height (pixels, optional):", value = NULL, min = 1),
+        numericInput("padding", "Padding (pixels):", value = 10, min = 0),
+        numericInput("quality", "JPG Quality (0-100):", value = 100, min = 0, max = 100),
+        actionButton("convert_images", "Convert Images"),
+        textOutput("conversion_status")
+      ),
+      tabPanel("Cut Images in Half",
+        shinyDirButton("cut_input_dir", "Select Input Folder", "Choose a folder with images"),
+        textOutput("cut_input_dir_text"),
+        shinyDirButton("cut_output_dir", "Select Output Folder", "Choose a folder for processed images"),
+        textOutput("cut_output_dir_text"),
+        actionButton("cut_images", "Process Images"),
+        textOutput("cut_status")
+      ),
+      tabPanel("Split Images",
+        radioButtons(
+          "split_mode",
+          "Select Mode:",
+          choices = c("Single File" = "single", "Batch Processing (Folder)" = "batch"),
+          inline = TRUE
+        ),
+        conditionalPanel(
+          condition = "input.split_mode == 'single'",
+          fileInput("split_single_file", "Select an Image File (PNG/JPG):")
+        ),
+        conditionalPanel(
+          condition = "input.split_mode == 'batch'",
+          shinyDirButton("split_input_dir", "Select Input Folder", "Choose a folder with image files"),
+          textOutput("split_input_dir_text")
+        ),
+        shinyDirButton("split_output_dir", "Select Output Folder", "Choose a folder for processed images"),
+        textOutput("split_output_dir_text"),
+        selectInput("split_direction", "Split Direction:", choices = c("Horizontal" = "horizontal", "Vertical" = "vertical")),
+        sliderInput("split_position", "Split Position (as a fraction):", min = 0, max = 1, value = 0.5, step = 0.01),
+        actionButton("process_split_images", "Split Image(s)"),
+        textOutput("split_status"),
+        conditionalPanel(
+          condition = "input.split_mode == 'single' && !is.null(input.split_single_file)",
+          h4("Preview of Selected Image"),
+          plotOutput("image_preview", height = "400px", width = "100%")
+        )
+      ),
+      tabPanel("Morph Shapes",
+        fileInput("morph_image1", "Select First Grayscale Image (PNG/JPG):"),
+        fileInput("morph_image2", "Select Second Grayscale Image (PNG/JPG):"),
+        shinyDirButton("morph_output_dir", "Select Output Directory", "Choose a folder to save the output"),
+        textOutput("morph_output_dir_text"),
+        textInput("morph_output_name", "Output File Name (e.g., result.jpg):", value = "morphed.jpg"),
+        sliderInput("morph_threshold", "Threshold (0 to 1):", min = 0, max = 1, value = 0.1, step = 0.01),
+        numericInput("morph_gamma", "Gamma Correction (e.g., 1.0):", value = 1.0, min = 0.1, step = 0.1),
+        actionButton("morph_shapes_button", "Morph Shapes"),
+        textOutput("morph_status"),
+        h4("Image Previews"),
+        fluidRow(
+          column(4, h5("First Image"), uiOutput("dynamic_preview_image1")),
+          column(4, h5("Second Image"), uiOutput("dynamic_preview_image2")),
+          column(4, h5("Morphed Image"), uiOutput("dynamic_preview_morphed"))
+        )
+      ),
+      tabPanel("Complete Halved Shapes",
+        shinyDirButton("complete_input_dir", "Select Input Folder", "Choose a folder with halved images"),
+        textOutput("complete_input_dir_text"),
+        shinyDirButton("complete_output_dir", "Select Output Folder", "Choose a folder for completed images"),
+        textOutput("complete_output_dir_text"),
+        actionButton("complete_shapes", "Complete Halved Shapes"),
+        textOutput("complete_status")
+      )
+    )
+  ),
+  tabPanel("Shape Analysis",
+    fluidRow(
+      column(4,
+        h4("Run Shape Analysis"),
+        shinyDirButton("shape_analysis_dir", "Select Shape Folder", "Choose a folder with shape files"),
+        textOutput("shape_analysis_dir_text"),
+        shinyDirButton("output_dir", "Select Output Directory", "Choose a folder for Excel file"),
+        textOutput("selected_output_dir"),
+        checkboxInput("norm", "Normalize Fourier Descriptors (norm)", value = TRUE),
+        numericInput("num_pcs", "Number of PCs to Display in Contribution Plot:", value = 2, min = 1),
+        selectInput(
+          "start_point",
+          "Starting Point:",
+          choices = c("left", "up", "down", "right"),
+          selected = "left"
+        ),
+        textInput("output_file", "Output File Name (Excel):", value = "shape_analysis.xlsx"),
+        actionButton("run_analysis", "Run Analysis")
+      ),
+      column(8,
+        h4("Summary Output"),
+        verbatimTextOutput("pca_summary"),
+        h4("PC Contribution Plot"),
+        plotOutput("pc_contrib_plot")
       )
     )
   )

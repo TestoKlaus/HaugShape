@@ -65,10 +65,10 @@
 #'            show_hulls = TRUE)
 #'
 #' @export
-#' @import ggplot2
-#' @import dplyr
+#' @importFrom ggplot2 ggplot aes geom_point geom_polygon geom_rect geom_segment geom_text annotate theme_minimal theme element_blank element_text element_rect margin labs ggsave
+#' @importFrom dplyr filter
 #' @importFrom rlang sym
-#' @importFrom scales rescale gradient_n_pal
+#' @importFrom scales hue_pal
 #' @importFrom MASS kde2d
 #' @importFrom grDevices chull
 #' @importFrom grid arrow unit
@@ -81,30 +81,24 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
                        title_size = 24, label_size = 20, tick_size = 15,
                        tick_length = 0.005,  # Fixed tick length (same for all ticks)
                        tick_margin = 0.05,
-                       x_label_adjust_x = 0,  # New horizontal adjustment for x-axis label
-                       x_label_adjust_y = 0,  # New vertical adjustment for x-axis label
-                       y_label_adjust_x = 0,  # New parameter for horizontal adjustment of y-axis label
-                       y_label_adjust_y = 0,  # New parameter for vertical adjustment of y-axis label
-                       x_label_size = 5,  # New parameter for x-axis label size
-                       y_label_size = 5,  # New parameter for y-axis label size
-                       show_hulls = FALSE,  # Default is now FALSE
-                       show_shapes = FALSE,  # Default is now FALSE
-                       show_hull_for_groups = NULL,  # Show hulls only for specified groups
-                       show_shapes_for_groups = NULL,  # New param for selectively showing shapes
-                       show_contours = FALSE,  # Renamed parameter for adding contours
-                       contour_colors = "black",  # Color for contour lines
-                       show_contours_for_groups = NULL,  # New param to selectively show contours
-                       contour_linewidth = 0.5,  # New param to adjust contour linewidth
-                       axis_linewidth = 1,  # New param to adjust axis and tick linewidth together
-                       plot_style = "Haug",
-                       rotate_y_label = FALSE,  # Default rotation for y-axis label is now FALSE
-                       show_label_text_fields = TRUE,  # Default text fields around axis labels is already TRUE
-                       export = FALSE,  # New parameter for exporting plot
-                       file_name = "shape_plot_output",  # Default file name for export
-                       file_path = NULL,  # Optional path for file export
-                       shape_col = "shape", shape_size = 0.01, shape_shift = 0.1, # Shape-related parameters
-                       shape_x_adjust = 0, shape_y_adjust = 0 # Shape-related parameters
-) {
+                       x_label_adjust_x = 0, x_label_adjust_y = 0,
+                       y_label_adjust_x = 0, y_label_adjust_y = 0,
+                       x_label_size = 5, y_label_size = 5,
+                       show_hulls = FALSE, show_shapes = FALSE,
+                       show_hull_for_groups = NULL, show_shapes_for_groups = NULL,
+                       show_contours = FALSE, contour_colors = "black", show_contours_for_groups = NULL,
+                       contour_linewidth = 0.5, axis_linewidth = 1, plot_style = "Haug",
+                       rotate_y_label = FALSE, show_label_text_fields = TRUE,
+                       export = FALSE, file_name = "shape_plot_output", file_path = NULL,
+                       shape_col = "shape", shape_size = 0.01, shape_shift = 0.1,
+                       shape_x_adjust = 0, shape_y_adjust = 0) {
+  # Check for required packages
+  pkgs <- c("ggplot2", "dplyr", "rlang", "scales", "MASS", "grDevices", "grid")
+  for (pkg in pkgs) {
+    if (!requireNamespace(pkg, quietly = TRUE)) {
+      stop(sprintf("The '%s' package is required but not installed.", pkg), call. = FALSE)
+    }
+  }
 
   if (missing(data) || missing(x_col) || missing(y_col)) {
     stop("Missing required arguments: 'data', 'x_col', or 'y_col'. Please provide these parameters.")
@@ -624,6 +618,5 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
     )
     message(paste("Plot exported to", file_path, "with width:", width_in, "inches, height:", height_in, "inches."))
   }
-
-  return(plot)
+  invisible(plot)
 }
