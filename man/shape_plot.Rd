@@ -2,7 +2,7 @@
 % Please edit documentation in R/shape_plot.R
 \name{shape_plot}
 \alias{shape_plot}
-\title{Generate a Customizable Scatter Plot with Hulls and Contours}
+\title{Generate Customizable Scatter Plots with Morphometric Features}
 \usage{
 shape_plot(
   data,
@@ -55,13 +55,13 @@ shape_plot(
 )
 }
 \arguments{
-\item{data}{(required) A data frame containing the data to be plotted.}
+\item{data}{A data frame containing the plotting data. Required.}
 
-\item{x_col}{(required) A character string or bare column name representing the x-axis column. Use either \code{"column_name"} or \code{column_name}.}
+\item{x_col}{Character string specifying the x-axis column name. Required.}
 
-\item{y_col}{(required) A character string or bare column name representing the y-axis column. Use either \code{"column_name"} or \code{column_name}.}
+\item{y_col}{Character string specifying the y-axis column name. Required.}
 
-\item{group_col}{(required) A character string or bare column name representing the grouping column for color and style customization. Use either \code{"column_name"} or \code{column_name}.}
+\item{group_col}{Character string specifying the grouping column name. Optional.}
 
 \item{group_vals}{A vector specifying which group values to display. Only these groups will appear in the plot.}
 
@@ -153,9 +153,9 @@ shape_plot(
 A ggplot2 object representing the generated scatter plot.
 }
 \description{
-The \code{shape_plot} function generates a scatter plot of specified columns with optional grouping.
-It supports various features such as convex hulls, contour plots, and shapes at convex hull points.
-The function provides extensive customization options for axis labels, colors, shapes, and plot aesthetics.
+Creates advanced scatter plots with optional convex hulls, contour lines, and shape
+overlays for morphometric analysis. Supports extensive customization for
+publication-ready figures with multiple plot styles and group comparisons.
 }
 \examples{
 test_data <- data.frame(

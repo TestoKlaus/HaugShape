@@ -2,31 +2,72 @@
 % Please edit documentation in R/convert_png_to_jpg.R
 \name{convert_png_to_image}
 \alias{convert_png_to_image}
-\title{Import, Resize, Add Padding, and Convert PNG to JPG or BMP (24-bit)}
+\title{Convert and Process PNG Images to JPG or BMP Format}
 \usage{
 convert_png_to_image(
   file_path,
   output_dir = ".",
-  fixed_dim,
+  fixed_dim = NULL,
   padding = 10,
   quality = 100,
   format = "jpg"
 )
 }
 \arguments{
-\item{file_path}{The file path to the input PNG file.}
+\item{file_path}{Character string specifying the path to the input PNG file.}
 
-\item{output_dir}{The directory where the output file should be saved. Defaults to the current working directory.}
+\item{output_dir}{Character string specifying the output directory.
+Defaults to current working directory.}
 
-\item{fixed_dim}{A named list specifying the fixed dimension. Use \code{list(width = X)} or \code{list(height = Y)}.}
+\item{fixed_dim}{Named list specifying fixed dimension for resizing.
+Use \code{list(width = X)} or \code{list(height = Y)}. If \code{NULL}, no resizing is performed.}
 
-\item{padding}{The padding in pixels to add around the resized image. Default is 10 pixels.}
+\item{padding}{Integer specifying padding in pixels around the image. Default is 10.}
 
-\item{quality}{JPG quality (0-100). Default is 100 (only applies to JPG format).}
+\item{quality}{Integer between 1-100 specifying JPG quality. Default is 100.
+Only applies to JPG format.}
 
-\item{format}{The output file format. Can be \code{"jpg"} or \code{"bmp"}. Default is \code{"jpg"}.}
+\item{format}{Character string specifying output format: "jpg" or "bmp". Default is "jpg".}
+}
+\value{
+Character string of the output file path.
 }
 \description{
-This function imports a PNG image, resizes it to a fixed height or width (proportional resizing),
-adds a white background for padding, and then saves it as a JPG or BMP (24-bit) file.
+Imports PNG images, applies resizing with aspect ratio preservation,
+adds padding, and converts to JPG or BMP format for morphometric analysis
+workflows.
+}
+\details{
+This function is designed for preparing images for morphometric analysis by:
+\itemize{
+\item Maintaining aspect ratios during resizing
+\item Adding consistent padding for standardization
+\item Converting to appropriate color spaces
+\item Ensuring compatibility with analysis software
+}
+
+The function requires the \code{magick} package for image processing operations.
+}
+\examples{
+\dontrun{
+# Convert single PNG to JPG with fixed width
+convert_png_to_image(
+  file_path = "input.png",
+  output_dir = "output/",
+  fixed_dim = list(width = 800),
+  padding = 20,
+  quality = 95
+)
+
+# Convert to BMP with fixed height
+convert_png_to_image(
+  file_path = "shape.png",
+  fixed_dim = list(height = 600),
+  format = "bmp"
+)
+}
+
+}
+\seealso{
+\link{cut_image_right_half}, \link{split_image}
 }

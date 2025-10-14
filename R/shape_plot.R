@@ -1,13 +1,13 @@
-#' Generate a Customizable Scatter Plot with Hulls and Contours
+#' Generate Customizable Scatter Plots with Morphometric Features
 #'
-#' The `shape_plot` function generates a scatter plot of specified columns with optional grouping.
-#' It supports various features such as convex hulls, contour plots, and shapes at convex hull points.
-#' The function provides extensive customization options for axis labels, colors, shapes, and plot aesthetics.
+#' Creates advanced scatter plots with optional convex hulls, contour lines, and shape 
+#' overlays for morphometric analysis. Supports extensive customization for 
+#' publication-ready figures with multiple plot styles and group comparisons.
 #'
-#' @param data (required) A data frame containing the data to be plotted.
-#' @param x_col (required) A character string or bare column name representing the x-axis column. Use either `"column_name"` or `column_name`.
-#' @param y_col (required) A character string or bare column name representing the y-axis column. Use either `"column_name"` or `column_name`.
-#' @param group_col (required) A character string or bare column name representing the grouping column for color and style customization. Use either `"column_name"` or `column_name`.
+#' @param data A data frame containing the plotting data. Required.
+#' @param x_col Character string specifying the x-axis column name. Required.
+#' @param y_col Character string specifying the y-axis column name. Required.
+#' @param group_col Character string specifying the grouping column name. Optional.
 #' @param group_vals A vector specifying which group values to display. Only these groups will appear in the plot.
 #' @param hull_fill A vector specifying the fill color(s) for convex hull(s). Defaults to `point_color` if not specified.
 #' @param hull_color A vector specifying the border color(s) for convex hull(s). Default is "black".
@@ -106,13 +106,53 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
                        shape_x_adjust = 0, shape_y_adjust = 0 # Shape-related parameters
 ) {
 
-  if (missing(data) || missing(x_col) || missing(y_col)) {
-    stop("Missing required arguments: 'data', 'x_col', or 'y_col'. Please provide these parameters.")
+  # Input validation
+  if (missing(data)) {
+    stop("Argument 'data' is required", call. = FALSE)
   }
-
-  # Validate `shape_col` only if `show_shapes` is TRUE
+  if (missing(x_col)) {
+    stop("Argument 'x_col' is required", call. = FALSE)
+  }
+  if (missing(y_col)) {
+    stop("Argument 'y_col' is required", call. = FALSE)
+  }
+  
+  # Validate data frame
+  if (!is.data.frame(data)) {
+    stop("'data' must be a data frame", call. = FALSE)
+  }
+  if (nrow(data) == 0) {
+    stop("'data' cannot be empty", call. = FALSE)
+  }
+  
+  # Validate column existence
+  if (!x_col %in% colnames(data)) {
+    stop("Column '", x_col, "' not found in data", call. = FALSE)
+  }
+  if (!y_col %in% colnames(data)) {
+    stop("Column '", y_col, "' not found in data", call. = FALSE)
+  }
+  if (!is.null(group_col) && !group_col %in% colnames(data)) {
+    stop("Column '", group_col, "' not found in data", call. = FALSE)
+  }
+  
+  # Validate numeric columns
+  if (!is.numeric(data[[x_col]])) {
+    stop("Column '", x_col, "' must be numeric", call. = FALSE)
+  }
+  if (!is.numeric(data[[y_col]])) {
+    stop("Column '", y_col, "' must be numeric", call. = FALSE)
+  }
+  
+  # Validate shape column if needed
   if (show_shapes && !shape_col %in% colnames(data)) {
-    stop(paste("The column", shape_col, "does not exist in the data. Please provide a valid shape column."))
+    stop("Column '", shape_col, "' not found in data. Required when show_shapes = TRUE", call. = FALSE)
+  }
+  
+  # Validate plot_style
+  valid_styles <- c("Haug", "inverted_Haug", "publication")
+  if (!plot_style %in% valid_styles) {
+    stop("plot_style must be one of: ", paste(valid_styles, collapse = ", "), call. = FALSE)
   }
 
   # Dynamically filter out NA and non-finite values
@@ -270,7 +310,7 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
       # Always plot the points, regardless of the number of points
       plot <- plot +
         ggplot2::geom_point(data = group_data,
-                            ggplot2::aes_string(x = x_col, y = y_col),
+                            ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]]),
                             color = point_color[i],
                             fill = point_fill[i],
                             shape = point_shape[i],
@@ -279,7 +319,7 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
   } else {
     # If no groups, just add points without any specific group aesthetic
     plot <- plot +
-      ggplot2::geom_point(ggplot2::aes_string(x = x_col, y = y_col),
+      ggplot2::geom_point(ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]]),
                           color = point_color,
                           fill = point_fill,
                           shape = point_shape,
@@ -308,7 +348,7 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
 
         plot <- plot +
           ggplot2::geom_polygon(data = hull_data,
-                                ggplot2::aes_string(x = x_col, y = y_col),
+                                ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]]),
                                 fill = hull_fill[i],
                                 color = hull_color[i],
                                 linetype = hull_linetype,
@@ -489,7 +529,7 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
       # Plot the points for the group, even if it has fewer than 3 points
       plot <- plot +
         ggplot2::geom_point(data = group_data,
-                            ggplot2::aes_string(x = x_col, y = y_col),
+                            ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]]),
                             color = point_color[i],
                             fill = point_fill[i],
                             shape = point_shape[i],
@@ -498,7 +538,7 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
   } else {
     # If no groups, just add points without any specific group aesthetic
     plot <- plot +
-      ggplot2::geom_point(ggplot2::aes_string(x = x_col, y = y_col),
+      ggplot2::geom_point(ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]]),
                           color = point_color,
                           fill = point_fill,
                           shape = point_shape,
@@ -519,9 +559,7 @@ shape_plot <- function(data, x_col, y_col, group_col = NULL,
   x_ticks <- x_ticks[x_ticks != 0 & x_ticks > x_range[1] & x_ticks < x_range[2]]  # Remove 0 and outermost x-ticks
   y_ticks <- y_ticks[y_ticks != 0 & y_ticks > y_range[1] & y_ticks < y_range[2]]  # Remove 0 and outermost y-ticks
 
-  # Calculate proportional tick lengths based on a fixed scale
-  x_tick_length <- tick_length * diff(y_range)  # Consistent tick length on y-scale
-  y_tick_length <- tick_length * diff(x_range)  # Consistent tick length on x-scale
+  # Note: tick_length parameter is available for future customization
 
   # Customizing the axes and tick marks with adjustable linewidth
   plot <- plot +

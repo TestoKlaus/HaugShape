@@ -1,3 +1,16 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^LICENSE\.md$
+^README\.Rmd$
+^\.github$
+^\.travis\.yml$
+^appveyor\.yml$
+^codecov\.yml$
+^\.covrignore$
+^cran-comments\.md$
+^revdep$
+^pkgdown$
+^_pkgdown\.yml$
+^docs$
+^\.httr-oauth$
+^CONTRIBUTORS_GUIDE_INTEGRATION\.md$

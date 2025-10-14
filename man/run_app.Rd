@@ -2,10 +2,54 @@
 % Please edit documentation in R/run_app.R
 \name{run_app}
 \alias{run_app}
-\title{Run the Shiny Application}
+\title{Launch HaugShape Interactive Application}
 \usage{
-run_app()
+run_app(port = NULL, host = "127.0.0.1", launch.browser = TRUE, quiet = FALSE)
+}
+\arguments{
+\item{port}{Port number to run the application on. If \code{NULL} (default),
+Shiny will automatically select an available port.}
+
+\item{host}{Host IP address. Default is "127.0.0.1" (localhost).}
+
+\item{launch.browser}{Logical indicating whether to launch the app in
+the default web browser. Default is \code{TRUE}.}
+
+\item{quiet}{Logical indicating whether to suppress startup messages.
+Default is \code{FALSE}.}
+}
+\value{
+No return value. Starts the Shiny application.
 }
 \description{
-Launches the Shiny application provided with the package.
+Starts the interactive Shiny application for HaugShape, providing a
+user-friendly interface for shape analysis, plotting, and image processing.
+}
+\details{
+The Shiny application provides interactive access to all HaugShape
+functionality including:
+\itemize{
+\item Advanced shape plotting with customizable aesthetics
+\item Image processing and shape preparation tools
+\item Morphometric analysis with Fourier descriptors
+\item Data upload and visualization
+\item Export capabilities for plots and results
+\item Contributors guide and documentation
+}
+}
+\examples{
+\dontrun{
+# Launch the app with default settings
+run_app()
+
+# Launch on specific port without opening browser
+run_app(port = 3838, launch.browser = FALSE)
+
+# Launch with quiet startup
+run_app(quiet = TRUE)
+}
+
+}
+\seealso{
+\link{shape_plot}, \link{Haug_panel}, \link{shape_analysis}
 }

@@ -1,0 +1,140 @@
+#' HaugShape: Advanced Shape Analysis and Morphometric Visualization
+#'
+#' @description
+#' HaugShape provides comprehensive tools for advanced shape analyses and
+#' morphometric visualizations in R. The package offers customizable plotting
+#' functions for visualizing shapes, convex hulls, and contours, with support
+#' for multiple group comparisons and publication-ready figure generation.
+#'
+#' @details
+#' ## Key Features
+#'
+#' \subsection{Core Plotting Functions}{
+#' \itemize{
+#'   \item \code{\link{shape_plot}}: Create customizable scatter plots with
+#'   convex hulls and contours
+#'   \item \code{\link{Haug_panel}}: Generate multi-panel visualizations for
+#'   group comparisons
+#'   \item \code{\link{Haug_overview}}: Create comprehensive overview plots
+#'   and PDFs
+#'   \item \code{\link{cluster_plot}}: Perform and visualize clustering analysis
+#'   \item \code{\link{elbow_plot}}: Generate elbow plots for optimal cluster
+#'   selection
+#' }
+#' }
+#'
+#' \subsection{Morphometric Analysis}{
+#' \itemize{
+#'   \item \code{\link{shape_analysis}}: Comprehensive shape analysis with
+#'   Fourier descriptors
+#'   \item \code{\link{shape_plot_momocs}}: Integration with Momocs package for
+#'   morphometric visualization
+#'   \item \code{\link{get_hull_specimen_table}}: Extract specimen information
+#'   from convex hulls
+#' }
+#' }
+#'
+#' \subsection{Image Processing}{
+#' \itemize{
+#'   \item \code{\link{convert_png_to_image}}: Convert and process PNG images
+#'   for analysis
+#'   \item \code{\link{cut_image_right_half}}: Extract right halves of images
+#'   \item \code{\link{split_image}}: Split images into multiple parts
+#'   \item \code{\link{complete_halved_shape}}: Complete symmetrical shapes
+#'   from halves
+#'   \item \code{\link{morph_shapes}}: Create morphed intermediate shapes
+#' }
+#' }
+#'
+#' \subsection{Interactive Interface}{
+#' \itemize{
+#'   \item \code{\link{run_app}}: Launch interactive Shiny application
+#'   \item \code{\link{map_shapes_to_data}}: Map shape files to analysis data
+#' }
+#' }
+#'
+#' ## Plot Styles
+#'
+#' HaugShape supports multiple plot styles:
+#' \itemize{
+#'   \item **"Haug"**: Default style with clean aesthetics for morphometric
+#'   publications
+#'   \item **"inverted_Haug"**: Inverted color scheme for dark backgrounds
+#'   \item **"publication"**: Minimal style optimized for scientific
+#'   publications
+#' }
+#'
+#' ## Getting Started
+#'
+#' 1. **Basic plotting**: Start with \code{\link{shape_plot}} for scatter plots
+#' 2. **Interactive analysis**: Use \code{\link{run_app}} for the Shiny
+#' interface
+#' 3. **Shape analysis**: Try \code{\link{shape_analysis}} for morphometric
+#' workflows
+#' 4. **Multi-panel plots**: Use \code{\link{Haug_panel}} for comparative
+#' visualizations
+#'
+#' ## Dependencies
+#'
+#' ### Required packages:
+#' \itemize{
+#'   \item \code{ggplot2}: Core plotting functionality
+#'   \item \code{dplyr}: Data manipulation
+#'   \item \code{patchwork}: Multi-panel plot arrangements
+#'   \item \code{scales}: Plot scaling and color management
+#' }
+#'
+#' ### Optional packages for enhanced functionality:
+#' \itemize{
+#'   \item \code{Momocs}: Morphometric analysis and shape processing
+#'   \item \code{magick}: Advanced image processing capabilities
+#'   \item \code{shiny}: Interactive web application interface
+#'   \item \code{DT}: Enhanced data table displays
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' # Basic shape plotting
+#' library(HaugShape)
+#'
+#' # Create sample data
+#' data <- data.frame(
+#'   PC1 = rnorm(100),
+#'   PC2 = rnorm(100),
+#'   group = sample(c("A", "B", "C"), 100, replace = TRUE)
+#' )
+#'
+#' # Basic scatter plot with convex hulls
+#' shape_plot(data, x_col = "PC1", y_col = "PC2",
+#'           group_col = "group", show_hulls = TRUE)
+#'
+#' # Multi-panel visualization
+#' Haug_panel(data, x_col = "PC1", y_col = "PC2",
+#'           group_col = "group", panel_type = "hulls")
+#'
+#' # Launch interactive application
+#' run_app()
+#'
+#' # Clustering analysis
+#' cluster_plot(data, x_col = "PC1", y_col = "PC2",
+#'             method = "kmeans", k = 3)
+#' }
+#'
+#' @author Colin Hassenbach \email{colin.hassenbach@@gmail.com}
+#'
+#' @references
+#' For more information and tutorials, visit:
+#' \url{https://github.com/TestoKlaus/HaugShape}
+#'
+#' @seealso
+#' \itemize{
+#'   \item \code{\link{shape_plot}} for basic plotting
+#'   \item \code{\link{run_app}} for interactive interface
+#'   \item \code{\link{shape_analysis}} for morphometric analysis
+#' }
+#'
+#' @keywords package morphometrics visualization
+#' @name HaugShape-package
+#' @aliases HaugShape
+#' @docType package
+"_PACKAGE"

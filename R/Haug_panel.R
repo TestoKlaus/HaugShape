@@ -73,30 +73,54 @@ Haug_panel <- function(data, x_col, y_col, group_col = NULL,
                        save_path = NULL  # Path to save the final plot, optional
 ) {
 
-  # Error handling for missing required parameters
-  if (missing(data) || missing(x_col) || missing(y_col)) {
-    stop("Missing required arguments: 'data', 'x_col', or 'y_col'. Please provide these parameters.")
+  # Input validation
+  if (missing(data)) {
+    stop("Argument 'data' is required", call. = FALSE)
   }
-
-  # Validate that group_col exists in the data if provided
-  if (!is.null(group_col) && !group_col %in% colnames(data)) {
-    stop(paste("The column", group_col, "does not exist in the data. Please provide a valid group column."))
+  if (missing(x_col)) {
+    stop("Argument 'x_col' is required", call. = FALSE)
   }
-
-  # Validate that x_col and y_col exist in the data
+  if (missing(y_col)) {
+    stop("Argument 'y_col' is required", call. = FALSE)
+  }
+  
+  # Validate data frame
+  if (!is.data.frame(data)) {
+    stop("'data' must be a data frame", call. = FALSE)
+  }
+  if (nrow(data) == 0) {
+    stop("'data' cannot be empty", call. = FALSE)
+  }
+  
+  # Validate column existence
   if (!x_col %in% colnames(data)) {
-    stop(paste("The column", x_col, "does not exist in the data. Please provide a valid x-axis column."))
+    stop("Column '", x_col, "' not found in data", call. = FALSE)
   }
   if (!y_col %in% colnames(data)) {
-    stop(paste("The column", y_col, "does not exist in the data. Please provide a valid y-axis column."))
+    stop("Column '", y_col, "' not found in data", call. = FALSE)
   }
-
-  # Validate that group_vals correspond to the values in group_col (if provided)
-  if (!is.null(group_vals) && !all(group_vals %in% unique(data[[group_col]]))) {
-    stop("Some values in 'group_vals' do not exist in the specified 'group_col'. Please check the group values.")
+  if (!is.null(group_col) && !group_col %in% colnames(data)) {
+    stop("Column '", group_col, "' not found in data", call. = FALSE)
   }
-
-  # Validate panel_type input
+  
+  # Validate numeric columns
+  if (!is.numeric(data[[x_col]])) {
+    stop("Column '", x_col, "' must be numeric", call. = FALSE)
+  }
+  if (!is.numeric(data[[y_col]])) {
+    stop("Column '", y_col, "' must be numeric", call. = FALSE)
+  }
+  
+  # Validate group_vals
+  if (!is.null(group_vals) && !is.null(group_col)) {
+    available_groups <- unique(data[[group_col]])
+    invalid_groups <- setdiff(group_vals, available_groups)
+    if (length(invalid_groups) > 0) {
+      stop("Group values not found in data: ", paste(invalid_groups, collapse = ", "), call. = FALSE)
+    }
+  }
+  
+  # Validate panel_type
   valid_panel_types <- c("hulls", "contours", "boxplot")
   if (!panel_type %in% valid_panel_types) {
     stop(paste("Invalid 'panel_type'. Please choose from", paste(valid_panel_types, collapse = ", "), "."))
@@ -170,7 +194,7 @@ Haug_panel <- function(data, x_col, y_col, group_col = NULL,
       tidyr::pivot_longer(cols = c(x_col, y_col), names_to = "PC", values_to = "Value")
 
     # Create a single boxplot comparing groups across both columns
-    boxplot <- ggplot2::ggplot(data_long, ggplot2::aes_string(x = "PC", y = "Value", fill = group_col)) +
+    boxplot <- ggplot2::ggplot(data_long, ggplot2::aes(x = PC, y = Value, fill = .data[[group_col]])) +
       ggplot2::geom_boxplot() +
       ggplot2::theme_minimal() +
       ggplot2::labs(title = "Comparison of Groups Across PCs", x = "Principal Components", y = "Values") +

@@ -39,4 +39,21 @@ shape_plot_momocs(): Plot PCA results with shapes at convex hull points for morp
 
 
 # Contributing
-Feedback and contributions are welcome! Feel free to open issues or submit pull requests on GitHub.
+
+We welcome contributions to HaugShape! Whether you're interested in:
+
+- 🐛 **Reporting bugs** or suggesting new features
+- 📝 **Improving documentation** or adding examples  
+- 💻 **Contributing code** for new functionality or bug fixes
+- 🎨 **Enhancing the Shiny app** with new features or UI improvements
+- 🧪 **Adding tests** to improve code coverage
+
+**Please see our [Contributing Guide](CONTRIBUTING.md)** for detailed information on:
+- Development setup and workflow
+- Code style guidelines and documentation standards
+- Testing procedures and pull request process
+- Shiny app development guidelines
+
+For quick questions or discussions, feel free to open an issue on GitHub. For more substantial contributions, please follow the guidelines in our contributing guide to ensure a smooth collaboration process.
+
+**New to open source?** The Contributors Guide tab in our Shiny app provides an interactive overview to get you started!

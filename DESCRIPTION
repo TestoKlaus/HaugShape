@@ -1,26 +1,50 @@
 Package: HaugShape
 Type: Package
-Title: Tools for Shape Plotting
-Version: 0.1.1
-Author: Colin Hassenbach
-Maintainer: Colin Hassenbach <colin.hassenbach@gmail.com>
-Description: This package provides tools for plotting shape data using
-    ggplot2, including options for adding convex hulls, heatmaps, and
-    customizable axis labels.
-License: MIT
+Title: Advanced Shape Analysis and Morphometric Visualization Tools
+Version: 0.2.0
+Authors@R: person("Colin", "Hassenbach", email = "colin.hassenbach@gmail.com",
+                  role = c("aut", "cre"), comment = c(ORCID = ""))
+Description: Provides comprehensive tools for advanced shape analyses and 
+    morphometric visualizations in R. Features include customizable plotting 
+    functions for visualizing shapes, convex hulls, and contours, with support 
+    for multiple group comparisons and publication-ready figure generation. 
+    Includes integration with 'Momocs' for morphometric analysis, interactive 
+    'Shiny' applications, and extensive image processing capabilities for 
+    shape preparation and analysis workflows.
+License: MIT + file LICENSE
+URL: https://github.com/TestoKlaus/HaugShape
+BugReports: https://github.com/TestoKlaus/HaugShape/issues
 Encoding: UTF-8
+Language: en-US
 LazyData: true
+Depends: R (>= 4.4.0)
 RoxygenNote: 7.3.2
 Roxygen: list(markdown = TRUE)
+Config/testthat/edition: 3
 Imports:
-    shiny,
-    dplyr,
-    ggplot2,
-    patchwork,
-    MASS,
-    RColorBrewer,
+    dplyr (>= 1.1.4),
+    ggplot2 (>= 3.5.1),
     grDevices,
     grid,
-    rlang,
-    scales
+    MASS,
+    patchwork (>= 1.3.0),
+    RColorBrewer,
+    rlang (>= 1.1.4),
+    scales (>= 1.3.0),
+    stats,
+    utils
+Suggests:
+    colourpicker (>= 1.3.0),
+    covr,
+    DT (>= 0.33),
+    fs (>= 1.6.4),
+    knitr,
+    magick (>= 2.8.5),
+    Momocs (>= 1.4.1),
+    openxlsx (>= 4.2.7.1),
+    readxl (>= 1.4.3),
+    rmarkdown,
+    shiny (>= 1.9.1),
+    shinyFiles (>= 0.9.3),
+    testthat (>= 3.2.1.1)
 

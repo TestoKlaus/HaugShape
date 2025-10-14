@@ -158,6 +158,184 @@ ui <- fluidPage(
           tags$hr(),
           h4("PC Contribution Plot"),
           plotOutput("pc_contrib_plot")
+        ),
+        tabPanel(
+          "Contributors Guide",
+          div(
+            style = "padding: 20px; max-width: 1000px;",
+            h3("Contributing to HaugShape", style = "color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;"),
+
+            p(strong("Welcome to the HaugShape contributors guide!"),
+              "This guide will help you get started with developing and contributing to this R package for advanced shape analyses and morphometric visualizations."),
+
+            h4("🚀 Quick Start", style = "color: #27ae60; margin-top: 30px;"),
+
+            h5("Prerequisites", style = "color: #34495e; margin-top: 20px;"),
+            tags$ul(
+              tags$li("R (version 4.0 or higher)"),
+              tags$li("RStudio (recommended IDE)"),
+              tags$li("Git for version control"),
+              tags$li("Rtools (on Windows) for package building")
+            ),
+
+            h5("Installation for Development", style = "color: #34495e; margin-top: 20px;"),
+            div(
+              style = "background-color: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff;",
+              tags$pre(
+                "# Development tools\n",
+                "install.packages(c('devtools', 'roxygen2', 'testthat', 'usethis'))\n\n",
+                "# Package dependencies\n",
+                "install.packages(c('shiny', 'dplyr', 'ggplot2', 'patchwork', \n",
+                "                   'MASS', 'RColorBrewer', 'grDevices', 'grid', \n",
+                "                   'rlang', 'scales', 'colourpicker', 'shinyFiles', \n",
+                "                   'DT', 'readxl', 'fs', 'magick'))\n\n",
+                "# Morphometric analysis\n",
+                "install.packages('Momocs')"
+              )
+            ),
+
+            h4("📋 Development Workflow", style = "color: #e74c3c; margin-top: 30px;"),
+
+            h5("Branch Strategy", style = "color: #34495e; margin-top: 20px;"),
+            tags$ul(
+              tags$li(strong("stable:"), " Main production branch"),
+              tags$li(strong("feature/:"), " New features or enhancements"),
+              tags$li(strong("bugfix/:"), " Bug fixes"),
+              tags$li(strong("hotfix/:"), " Critical fixes for production")
+            ),
+
+            h5("Making Changes", style = "color: #34495e; margin-top: 20px;"),
+            div(
+              style = "background-color: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #28a745;",
+              tags$ol(
+                tags$li("Create a new branch from 'stable'"),
+                tags$li("Make your changes following the code style guidelines"),
+                tags$li("Test your changes: ", tags$code("devtools::check()")),
+                tags$li("Update documentation: ", tags$code("devtools::document()")),
+                tags$li("Commit with descriptive messages using conventional format")
+              )
+            ),
+
+            h4("💻 Code Style Guidelines", style = "color: #9b59b6; margin-top: 30px;"),
+
+            h5("Function Naming Conventions", style = "color: #34495e; margin-top: 20px;"),
+            tags$ul(
+              tags$li("Use ", strong("snake_case"), " for variables and internal functions"),
+              tags$li("Use ", strong("PascalCase"), " for main exported functions when appropriate"),
+              tags$li("Use descriptive names: ", tags$code("contour_linewidth"), " instead of ", tags$code("lw"))
+            ),
+
+            h5("Documentation Requirements", style = "color: #34495e; margin-top: 20px;"),
+            p("All exported functions must include complete roxygen2 documentation with:"),
+            tags$ul(
+              tags$li("Clear title and description"),
+              tags$li("All parameters with types and descriptions"),
+              tags$li("Return value description"),
+              tags$li("Working examples (use ", tags$code("\\dontrun{}"), " for complex examples)"),
+              tags$li("Import statements for required packages")
+            ),
+
+            h4("🧪 Testing", style = "color: #f39c12; margin-top: 30px;"),
+
+            p("Create tests in the ", tags$code("tests/testthat/"), " directory:"),
+            div(
+              style = "background-color: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;",
+              tags$pre(
+                "# Run all tests\n",
+                "devtools::test()\n\n",
+                "# Check test coverage\n",
+                "covr::package_coverage()"
+              )
+            ),
+
+            h4("📱 Shiny App Development", style = "color: #17a2b8; margin-top: 30px;"),
+
+            h5("Adding New Features", style = "color: #34495e; margin-top: 20px;"),
+            tags$ul(
+              tags$li(strong("UI Components:"), " Add new inputs to the sidebar or new tabs"),
+              tags$li(strong("Server Logic:"), " Implement reactive functions and outputs"),
+              tags$li(strong("File Handling:"), " Use ", tags$code("shinyFiles"), " for directory/file selection"),
+              tags$li(strong("Plot Integration:"), " Use ", tags$code("renderPlot()"), " for HaugShape functions")
+            ),
+
+            h4("📚 Package Structure", style = "color: #6c757d; margin-top: 30px;"),
+
+            div(
+              style = "background-color: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #6c757d;",
+              tags$pre(
+                "HaugShape/\n",
+                "├── DESCRIPTION          # Package metadata\n",
+                "├── NAMESPACE           # Package namespace\n",
+                "├── LICENSE.md          # MIT License\n",
+                "├── README.md           # Package overview\n",
+                "├── CONTRIBUTING.md     # Contributors guide\n",
+                "├── R/                 # R source code\n",
+                "│   ├── shape_plot.R   # Main plotting functions\n",
+                "│   ├── Haug_*.R       # Haug-style functions\n",
+                "│   └── shape_analysis.R # Morphometric analysis\n",
+                "├── man/               # Documentation (auto-generated)\n",
+                "├── inst/              # Installed files\n",
+                "│   └── shiny/\n",
+                "│       └── app.R      # Shiny application\n",
+                "└── tests/             # Unit tests\n",
+                "    └── testthat/"
+              )
+            ),
+
+            h4("🤝 Submitting Contributions", style = "color: #20c997; margin-top: 30px;"),
+
+            p("When submitting a pull request, ensure:"),
+            tags$ul(
+              tags$li("All tests pass: ", tags$code("devtools::check()")),
+              tags$li("Documentation is updated"),
+              tags$li("NEWS.md is updated with your changes"),
+              tags$li("Clear description of changes made"),
+              tags$li("Screenshots for UI changes")
+            ),
+
+            h4("📞 Getting Help", style = "color: #dc3545; margin-top: 30px;"),
+
+            div(
+              style = "background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;",
+              tags$ul(
+                tags$li(strong("Maintainer:"), " Colin Hassenbach (colin.hassenbach@gmail.com)"),
+                tags$li(strong("GitHub:"), " ", tags$a("TestoKlaus/HaugShape",
+                  href = "https://github.com/TestoKlaus/HaugShape", target = "_blank")),
+                tags$li(strong("Documentation:"), " Use ", tags$code("?HaugShape::function_name"), " for help"),
+                tags$li(strong("Issues:"), " Report bugs or request features on GitHub")
+              )
+            ),
+
+            div(
+              style = "margin-top: 30px; padding: 20px; background-color: #d1ecf1; border-radius: 5px; border-left: 4px solid #bee5eb;",
+              h5("💡 Pro Tips", style = "color: #0c5460;"),
+              tags$ul(
+                tags$li("Run ", tags$code("devtools::check()"), " frequently during development"),
+                tags$li("Write roxygen2 documentation as you code"),
+                tags$li("Make focused, well-documented commits"),
+                tags$li("Consider the researcher's perspective when designing functions"),
+                tags$li("Test with different data files and edge cases")
+              )
+            ),
+
+            hr(style = "margin: 30px 0;"),
+
+            p(
+              style = "text-align: center; color: #6c757d; font-style: italic;",
+              "Thank you for contributing to HaugShape! Your efforts help make morphometric analysis more accessible to researchers worldwide."
+            ),
+
+            div(
+              style = "text-align: center; margin-top: 20px;",
+              tags$a(
+                "📖 View Full Contributing Guide",
+                href = "https://github.com/TestoKlaus/HaugShape/blob/stable/CONTRIBUTING.md",
+                target = "_blank",
+                class = "btn btn-primary",
+                style = "background-color: #007bff; border-color: #007bff; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px;"
+              )
+            )
+          )
         )
       )
     )
@@ -993,8 +1171,6 @@ server <- function(input, output, session) {
 
     # Initialize default point styles for all groups
     lapply(seq_along(groups), function(i) {
-      group <- groups[i]
-
       # Update point color
       if (is.null(input[[paste0("point_color_", i)]])) {
         updateColourInput(

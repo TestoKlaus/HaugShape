@@ -53,8 +53,70 @@ cluster_plot <- function(data, x_col, y_col, shape_col = "shape",
                          export = FALSE, file_name = "cluster_plot_output", file_path = NULL,
                          shape_x_adjust = 0, shape_y_adjust = 0, shape_rotation = 0, # Shape-related parameters
                          ...) {
-  if (!x_col %in% colnames(data) || !y_col %in% colnames(data)) {
-    stop("Both `x_col` and `y_col` must exist in the data frame.")
+  # Input validation
+  if (missing(data)) {
+    stop("Argument 'data' is required", call. = FALSE)
+  }
+  if (missing(x_col)) {
+    stop("Argument 'x_col' is required", call. = FALSE)
+  }
+  if (missing(y_col)) {
+    stop("Argument 'y_col' is required", call. = FALSE)
+  }
+  
+  # Validate data frame
+  if (!is.data.frame(data)) {
+    stop("'data' must be a data frame", call. = FALSE)
+  }
+  if (nrow(data) == 0) {
+    stop("'data' cannot be empty", call. = FALSE)
+  }
+  
+  # Validate column existence
+  if (!x_col %in% colnames(data)) {
+    stop("Column '", x_col, "' not found in data", call. = FALSE)
+  }
+  if (!y_col %in% colnames(data)) {
+    stop("Column '", y_col, "' not found in data", call. = FALSE)
+  }
+  
+  # Validate numeric columns
+  if (!is.numeric(data[[x_col]])) {
+    stop("Column '", x_col, "' must be numeric", call. = FALSE)
+  }
+  if (!is.numeric(data[[y_col]])) {
+    stop("Column '", y_col, "' must be numeric", call. = FALSE)
+  }
+  
+  # Validate clustering method
+  valid_methods <- c("kmeans", "hierarchical", "distance_threshold")
+  if (!method %in% valid_methods) {
+    stop("'method' must be one of: ", paste(valid_methods, collapse = ", "), call. = FALSE)
+  }
+  
+  # Validate k parameter
+  if (method %in% c("kmeans", "hierarchical")) {
+    if (!is.numeric(k) || length(k) != 1 || k < 1 || k != round(k)) {
+      stop("'k' must be a positive integer", call. = FALSE)
+    }
+    if (k > nrow(data)) {
+      stop("'k' cannot be greater than the number of data points", call. = FALSE)
+    }
+  }
+  
+  # Validate distance_threshold
+  if (method == "distance_threshold") {
+    if (is.null(distance_threshold)) {
+      stop("'distance_threshold' is required when method = 'distance_threshold'", call. = FALSE)
+    }
+    if (!is.numeric(distance_threshold) || length(distance_threshold) != 1 || distance_threshold <= 0) {
+      stop("'distance_threshold' must be a positive number", call. = FALSE)
+    }
+  }
+  
+  # Validate shape column if needed
+  if (show_shapes && !shape_col %in% colnames(data)) {
+    stop("Column '", shape_col, "' not found in data. Required when show_shapes = TRUE", call. = FALSE)
   }
 
   # Extract coordinates for clustering
